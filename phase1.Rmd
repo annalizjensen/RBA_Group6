@@ -1,0 +1,87 @@
+---
+title: "Final Project Phase I"
+output: html_document
+author: "Anna Liz Jensen, Maridol Guillen, Brooke Haley-Herevia, Keyur Joshi"
+date: "January 29, 2022"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
+library(data.table)
+library(readr)
+# todo aj: don't forget to include other ext libs for knitr
+```
+
+### *Step 1*
+
+We met as a group on a few occasions to settle on the data set we will describe in more detail in the next part of the document.
+
+### *Step 2*
+
+#### An intro to the data set
+
+This data set...
+
+#### Data source
+
+This data set came from ....
+
+#### Justification
+
+We chose this particular data set because...
+
+### *Step 3*
+
+#### Import
+
+```{r}
+
+```
+
+#### Listing Out Variables
+
+```{r}
+
+```
+
+#### Structure
+
+```{r}
+
+```
+
+#### Dimensions
+
+```{r}
+
+```
+
+#### Head and Tail
+
+```{r}
+
+```
+
+#### Missing Values
+
+```{r}
+
+```
+
+#### Missing Values Per Column
+
+```{r}
+
+```
+
+#### Summary of Cleaning Expectations
+
+We expect to clean the follow aspects of the data
+
+-   aspect 1
+
+-   aspect 2
+
+-   aspect 3
+
+-   etc.
