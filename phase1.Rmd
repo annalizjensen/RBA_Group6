@@ -95,8 +95,17 @@ user_ratings_df = fread(play_store_ratings, fill=T)
 #### Listing Out Variables
 
 ```{r}
-names(user_ratings_df)
-names(user_reviews_df)
+list_var <- function(df,data_set_name){
+  col_list <- paste(names(df),collapse=" | ")
+  cat(paste("User ", data_set_name, " Features:",col_list,sep = "\n"))
+}
+
+list_var(user_ratings_df,"Ratings")
+list_var(user_reviews_df,"Reviews")
+
+
+col_list <- paste(names(user_reviews_df),collapse=" | ")
+cat(paste("User Reviews Features:",col_list,sep = "\n"))
 ```
 
 #### Structure
@@ -109,8 +118,10 @@ str(user_reviews_df)
 #### Dimensions
 
 ```{r}
-dim(user_ratings_df)
-dim(user_reviews_df)
+dim_ratings <- dim(user_ratings_df)
+paste("User Ratings has ", dim_ratings[1] ," rows and " , dim_ratings[2] , " columns")
+dim_reviews <- dim(user_reviews_df)
+paste("User Ratings has " , dim_reviews[1] , " rows and " , dim_reviews[2] , " columns")
 ```
 
 #### Head and Tail
@@ -130,8 +141,8 @@ how_many_na = function(df) {
   length(which(is.na(df)))
 }
 
-how_many_na(user_ratings_df)
-how_many_na(user_reviews_df)
+paste("Missing values in ratings data ",how_many_na(user_ratings_df))
+paste("Missing values in reviews data ",how_many_na(user_reviews_df))
 ```
 
 #### Missing Values Per Column

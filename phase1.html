@@ -232,14 +232,25 @@ user_ratings_df = fread(play_store_ratings, fill=T)</code></pre>
 </div>
 <div id="listing-out-variables" class="section level4">
 <h4>Listing Out Variables</h4>
-<pre class="r"><code>names(user_ratings_df)</code></pre>
-<pre><code>##  [1] &quot;App&quot;            &quot;Category&quot;       &quot;Rating&quot;         &quot;Reviews&quot;       
-##  [5] &quot;Size&quot;           &quot;Installs&quot;       &quot;Type&quot;           &quot;Price&quot;         
-##  [9] &quot;Content Rating&quot; &quot;Genres&quot;         &quot;Last Updated&quot;   &quot;Current Ver&quot;   
-## [13] &quot;Android Ver&quot;</code></pre>
-<pre class="r"><code>names(user_reviews_df)</code></pre>
-<pre><code>## [1] &quot;App&quot;                    &quot;Translated_Review&quot;      &quot;Sentiment&quot;             
-## [4] &quot;Sentiment_Polarity&quot;     &quot;Sentiment_Subjectivity&quot;</code></pre>
+<pre class="r"><code>list_var &lt;- function(df,data_set_name){
+  col_list &lt;- paste(names(df),collapse=&quot; | &quot;)
+  cat(paste(&quot;User &quot;, data_set_name, &quot; Features:&quot;,col_list,sep = &quot;\n&quot;))
+}
+
+list_var(user_ratings_df,&quot;Ratings&quot;)</code></pre>
+<pre><code>## User 
+## Ratings
+##  Features:
+## App | Category | Rating | Reviews | Size | Installs | Type | Price | Content Rating | Genres | Last Updated | Current Ver | Android Ver</code></pre>
+<pre class="r"><code>list_var(user_reviews_df,&quot;Reviews&quot;)</code></pre>
+<pre><code>## User 
+## Reviews
+##  Features:
+## App | Translated_Review | Sentiment | Sentiment_Polarity | Sentiment_Subjectivity</code></pre>
+<pre class="r"><code>col_list &lt;- paste(names(user_reviews_df),collapse=&quot; | &quot;)
+cat(paste(&quot;User Reviews Features:&quot;,col_list,sep = &quot;\n&quot;))</code></pre>
+<pre><code>## User Reviews Features:
+## App | Translated_Review | Sentiment | Sentiment_Polarity | Sentiment_Subjectivity</code></pre>
 </div>
 <div id="structure" class="section level4">
 <h4>Structure</h4>
@@ -270,10 +281,12 @@ user_ratings_df = fread(play_store_ratings, fill=T)</code></pre>
 </div>
 <div id="dimensions" class="section level4">
 <h4>Dimensions</h4>
-<pre class="r"><code>dim(user_ratings_df)</code></pre>
-<pre><code>## [1] 10841    13</code></pre>
-<pre class="r"><code>dim(user_reviews_df)</code></pre>
-<pre><code>## [1] 64295     5</code></pre>
+<pre class="r"><code>dim_ratings &lt;- dim(user_ratings_df)
+paste(&quot;User Ratings has &quot;, dim_ratings[1] ,&quot; rows and &quot; , dim_ratings[2] , &quot; columns&quot;)</code></pre>
+<pre><code>## [1] &quot;User Ratings has  10841  rows and  13  columns&quot;</code></pre>
+<pre class="r"><code>dim_reviews &lt;- dim(user_reviews_df)
+paste(&quot;User Ratings has &quot; , dim_reviews[1] , &quot; rows and &quot; , dim_reviews[2] , &quot; columns&quot;)</code></pre>
+<pre><code>## [1] &quot;User Ratings has  64295  rows and  5  columns&quot;</code></pre>
 </div>
 <div id="head-and-tail" class="section level4">
 <h4>Head and Tail</h4>
@@ -365,10 +378,10 @@ user_ratings_df = fread(play_store_ratings, fill=T)</code></pre>
   length(which(is.na(df)))
 }
 
-how_many_na(user_ratings_df)</code></pre>
-<pre><code>## [1] 1474</code></pre>
-<pre class="r"><code>how_many_na(user_reviews_df)</code></pre>
-<pre><code>## [1] 53726</code></pre>
+paste(&quot;Missing values in ratings data &quot;,how_many_na(user_ratings_df))</code></pre>
+<pre><code>## [1] &quot;Missing values in ratings data  1474&quot;</code></pre>
+<pre class="r"><code>paste(&quot;Missing values in reviews data &quot;,how_many_na(user_reviews_df))</code></pre>
+<pre><code>## [1] &quot;Missing values in reviews data  53726&quot;</code></pre>
 </div>
 <div id="missing-values-per-column" class="section level4">
 <h4>Missing Values Per Column</h4>
