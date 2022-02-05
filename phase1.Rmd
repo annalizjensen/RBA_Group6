@@ -38,7 +38,7 @@ We chose this particular data set because...
 user_reviews_filename = "googleplaystore_user_reviews.csv"
 play_store_ratings = "googleplaystore.csv"
 user_reviews_df = fread(user_reviews_filename)
-user_ratings_df = fread(play_store_ratings)
+user_ratings_df = fread(play_store_ratings, fill=T)
 ```
 
 #### Listing Out Variables
@@ -75,19 +75,25 @@ tail(user_reviews_df)
 #### Missing Values
 
 ```{r}
-length(which(is.na(user_ratings_df)))
+how_many_na = function(df) {
+  length(which(is.na(df)))
+}
 
-length(which(is.na(user_reviews_df)))
+how_many_na(user_ratings_df)
+how_many_na(user_reviews_df)
 ```
 
 #### Missing Values Per Column
 
 ```{r}
 
+sum_of_na = function(df) {
+  sapply(df, function(col) sum(is.na(col)))
+}
 
-sapply(user_ratings_df, function(col) sum(is.na(col)))
+sum_of_na(user_ratings_df)
 
-sapply(user_reviews_df, function(col) sum(is.na(col)))
+sum_of_na(user_reviews_df)
 ```
 
 #### Summary of Cleaning Expectations
