@@ -35,53 +35,77 @@ We chose this particular data set because...
 #### Import
 
 ```{r}
-
+user_reviews_filename = "googleplaystore_user_reviews.csv"
+play_store_ratings = "googleplaystore.csv"
+user_reviews_df = fread(user_reviews_filename)
+user_ratings_df = fread(play_store_ratings, fill=T)
 ```
 
 #### Listing Out Variables
 
 ```{r}
-
+names(user_ratings_df)
+names(user_reviews_df)
 ```
 
 #### Structure
 
 ```{r}
-
+str(user_ratings_df)
+str(user_reviews_df)
 ```
 
 #### Dimensions
 
 ```{r}
-
+dim(user_ratings_df)
+dim(user_reviews_df)
 ```
 
 #### Head and Tail
 
 ```{r}
+head(user_ratings_df)
+head(user_reviews_df)
 
+tail(user_ratings_df)
+tail(user_reviews_df)
 ```
 
 #### Missing Values
 
 ```{r}
+how_many_na = function(df) {
+  length(which(is.na(df)))
+}
 
+how_many_na(user_ratings_df)
+how_many_na(user_reviews_df)
 ```
 
 #### Missing Values Per Column
 
 ```{r}
 
+sum_of_na = function(df) {
+  sapply(df, function(col) sum(is.na(col)))
+}
+
+sum_of_na(user_ratings_df)
+
+sum_of_na(user_reviews_df)
 ```
 
 #### Summary of Cleaning Expectations
 
 We expect to clean the follow aspects of the data
 
--   aspect 1
+-   Remove NaN rows from consideration
 
--   aspect 2
+-   Join the datasets together on the app name most likely
 
--   aspect 3
+-   Parse and convert many character values to numeric (Android ver, size, installs etc)
 
--   etc.
+    -   should also convert last updated to a datetime
+
+    -   Type variable is a boolean -- we should change it to `isFree` and use logical values
