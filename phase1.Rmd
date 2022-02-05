@@ -103,9 +103,6 @@ list_var <- function(df,data_set_name){
 list_var(user_ratings_df,"Ratings")
 list_var(user_reviews_df,"Reviews")
 
-
-col_list <- paste(names(user_reviews_df),collapse=" | ")
-cat(paste("User Reviews Features:",col_list,sep = "\n"))
 ```
 
 #### Structure
@@ -153,9 +150,8 @@ sum_of_na = function(df) {
   sapply(df, function(col) sum(is.na(col)))
 }
 
-sum_of_na(user_ratings_df)
-
-sum_of_na(user_reviews_df)
+paste("Missing values in ratings data per column ",sum_of_na(user_ratings_df))
+paste("Missing values in ratings data per column ",sum_of_na(user_reviews_df))
 ```
 
 #### Summary of Cleaning Expectations

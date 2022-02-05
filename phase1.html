@@ -247,10 +247,6 @@ list_var(user_ratings_df,&quot;Ratings&quot;)</code></pre>
 ## Reviews
 ##  Features:
 ## App | Translated_Review | Sentiment | Sentiment_Polarity | Sentiment_Subjectivity</code></pre>
-<pre class="r"><code>col_list &lt;- paste(names(user_reviews_df),collapse=&quot; | &quot;)
-cat(paste(&quot;User Reviews Features:&quot;,col_list,sep = &quot;\n&quot;))</code></pre>
-<pre><code>## User Reviews Features:
-## App | Translated_Review | Sentiment | Sentiment_Polarity | Sentiment_Subjectivity</code></pre>
 </div>
 <div id="structure" class="section level4">
 <h4>Structure</h4>
@@ -389,18 +385,26 @@ paste(&quot;Missing values in ratings data &quot;,how_many_na(user_ratings_df))<
   sapply(df, function(col) sum(is.na(col)))
 }
 
-sum_of_na(user_ratings_df)</code></pre>
-<pre><code>##            App       Category         Rating        Reviews           Size 
-##              0              0           1474              0              0 
-##       Installs           Type          Price Content Rating         Genres 
-##              0              0              0              0              0 
-##   Last Updated    Current Ver    Android Ver 
-##              0              0              0</code></pre>
-<pre class="r"><code>sum_of_na(user_reviews_df)</code></pre>
-<pre><code>##                    App      Translated_Review              Sentiment 
-##                      0                      0                      0 
-##     Sentiment_Polarity Sentiment_Subjectivity 
-##                  26863                  26863</code></pre>
+paste(&quot;Missing values in ratings data per column &quot;,sum_of_na(user_ratings_df))</code></pre>
+<pre><code>##  [1] &quot;Missing values in ratings data per column  0&quot;   
+##  [2] &quot;Missing values in ratings data per column  0&quot;   
+##  [3] &quot;Missing values in ratings data per column  1474&quot;
+##  [4] &quot;Missing values in ratings data per column  0&quot;   
+##  [5] &quot;Missing values in ratings data per column  0&quot;   
+##  [6] &quot;Missing values in ratings data per column  0&quot;   
+##  [7] &quot;Missing values in ratings data per column  0&quot;   
+##  [8] &quot;Missing values in ratings data per column  0&quot;   
+##  [9] &quot;Missing values in ratings data per column  0&quot;   
+## [10] &quot;Missing values in ratings data per column  0&quot;   
+## [11] &quot;Missing values in ratings data per column  0&quot;   
+## [12] &quot;Missing values in ratings data per column  0&quot;   
+## [13] &quot;Missing values in ratings data per column  0&quot;</code></pre>
+<pre class="r"><code>paste(&quot;Missing values in ratings data per column &quot;,sum_of_na(user_reviews_df))</code></pre>
+<pre><code>## [1] &quot;Missing values in ratings data per column  0&quot;    
+## [2] &quot;Missing values in ratings data per column  0&quot;    
+## [3] &quot;Missing values in ratings data per column  0&quot;    
+## [4] &quot;Missing values in ratings data per column  26863&quot;
+## [5] &quot;Missing values in ratings data per column  26863&quot;</code></pre>
 </div>
 <div id="summary-of-cleaning-expectations" class="section level4">
 <h4>Summary of Cleaning Expectations</h4>
