@@ -180,15 +180,45 @@ pre code {
 <h3><em>Step 2</em></h3>
 <div id="an-intro-to-the-data-set" class="section level4">
 <h4>An intro to the data set</h4>
-<p>This data set…</p>
+<p>There are two data sets with Google Play Store data. Both were scraped from the Google Play website by Kaggle user <a href="https://www.kaggle.com/lava18">lava18</a>. </p>
+<p>The “googleplaystore.csv” file lists app information including user-submitted app ratings, app downloads, app version, and more. </p>
+<p>The “googleplaystore_user_reviews.csv” file lists data including sentiment, sentiment polarity and sentiment subjectivity score. The three latter variables for sentiment are intended to gauge the human perspective or intent behind the review.</p>
+<p>While the exact machine learning procedure used by the data set is not noted in the Kaggle description, we suspect either a naive Bayes or bag of words or similar classifier was used to generate the polarity and subjectivity natural language processing (NLP) scores.</p>
+<p>In NLP, polarity refers to the intensity of human emotion, classified between -1 and 0 for negative emotions and between 0 and 1 for positive emotions, with scores around 0 indicating emotional neutrality. Subjectivity in NLP is score between 0 and 1 and measures whether the statement is suspected to be objective facts (closer to 0) or an expression of opinions with little rational support (closer to 1).</p>
+<p>Variables in “googleplaystore.csv” are: </p>
+<ul>
+<li><p>Name of App</p></li>
+<li><p>Category of App</p></li>
+<li><p>Average Rating</p></li>
+<li><p>Number of Reviews</p></li>
+<li><p>Size of App Software Download</p></li>
+<li><p>Number of App Installs</p></li>
+<li><p>Type (Free or Paid)</p></li>
+<li><p>Price (If not Free)</p></li>
+<li><p>Developer Content Rating</p></li>
+<li><p>Genre(s) of App</p></li>
+<li><p>Date App Last Updated</p></li>
+<li><p>Current Version of App</p></li>
+<li><p>Minimum Android OS Version Required</p></li>
+</ul>
+<p>Variables in “googleplaystore_user_reviews.csv”: </p>
+<ul>
+<li><p>Name of App</p></li>
+<li><p>Translated Review</p></li>
+<li><p>Sentiment Overall (Negative, Neutral, or Positive)</p></li>
+<li><p>Sentiment_Polarity</p></li>
+<li><p>Sentiment_Subjectivity</p></li>
+</ul>
 </div>
 <div id="data-source" class="section level4">
 <h4>Data source</h4>
-<p>This data set came from ….</p>
+<p><a href="https://www.kaggle.com/lava18/google-play-store-apps">Kaggle – Google Play Store App Reviews and Rating Web Scrape</a></p>
 </div>
 <div id="justification" class="section level4">
 <h4>Justification</h4>
-<p>We chose this particular data set because…</p>
+<p>In this final project, we seek to apply the techniques and skills we have acquired in class to a real-world data set. After tidying the data, we intend to run analyses to determine insights that could guide future app development success. How does app size impact overall rating? What is user sentiment toward apps that update more frequently with new features (e.g. higher app versions) versus apps that mostly stay static? How does review sentiment change the longer an app has gone without updates? These are a few of the many questions we believe we can address while working with this data set. </p>
+<p>This data set needs intensive cleaning, which will test our classroom skills with R. In Phase 1, Part 2, we list out just how many fields are explicitly missing within the data set, largely concentrated within the sentiment analysis of user reviews. Additionally, we find that many columns have data that could be coerced to a mode of data more easily analyzed – for example, we can convert app version, number of downloads, and app size into numeric values in order to better compare them. </p>
+<p>We also noticed when reviewing comments on the data set, that some users observe <a href="https://www.kaggle.com/lava18/google-play-store-apps/discussion/66015">erroneous data shifting</a> at times within the CSV. We will seek to replicate that and other possible issues by reviewing other complaints and working through the cleaning phase of the data in the ensuing project.</p>
 </div>
 </div>
 <div id="step-3" class="section level3">
@@ -198,7 +228,7 @@ pre code {
 <pre class="r"><code>user_reviews_filename = &quot;googleplaystore_user_reviews.csv&quot;
 play_store_ratings = &quot;googleplaystore.csv&quot;
 user_reviews_df = fread(user_reviews_filename)
-user_ratings_df = fread(play_store_ratings)</code></pre>
+user_ratings_df = fread(play_store_ratings, fill=T)</code></pre>
 </div>
 <div id="listing-out-variables" class="section level4">
 <h4>Listing Out Variables</h4>
@@ -214,11 +244,11 @@ user_ratings_df = fread(play_store_ratings)</code></pre>
 <div id="structure" class="section level4">
 <h4>Structure</h4>
 <pre class="r"><code>str(user_ratings_df)</code></pre>
-<pre><code>## Classes &#39;data.table&#39; and &#39;data.frame&#39;:   10472 obs. of  13 variables:
+<pre><code>## Classes &#39;data.table&#39; and &#39;data.frame&#39;:   10841 obs. of  13 variables:
 ##  $ App           : chr  &quot;Photo Editor &amp; Candy Camera &amp; Grid &amp; ScrapBook&quot; &quot;Coloring book moana&quot; &quot;U Launcher Lite â\200“ FREE Live Cool Themes, Hide Apps&quot; &quot;Sketch - Draw &amp; Paint&quot; ...
 ##  $ Category      : chr  &quot;ART_AND_DESIGN&quot; &quot;ART_AND_DESIGN&quot; &quot;ART_AND_DESIGN&quot; &quot;ART_AND_DESIGN&quot; ...
 ##  $ Rating        : num  4.1 3.9 4.7 4.5 4.3 4.4 3.8 4.1 4.4 4.7 ...
-##  $ Reviews       : int  159 967 87510 215644 967 167 178 36815 13791 121 ...
+##  $ Reviews       : chr  &quot;159&quot; &quot;967&quot; &quot;87510&quot; &quot;215644&quot; ...
 ##  $ Size          : chr  &quot;19M&quot; &quot;14M&quot; &quot;8.7M&quot; &quot;25M&quot; ...
 ##  $ Installs      : chr  &quot;10,000+&quot; &quot;500,000+&quot; &quot;5,000,000+&quot; &quot;50,000,000+&quot; ...
 ##  $ Type          : chr  &quot;Free&quot; &quot;Free&quot; &quot;Free&quot; &quot;Free&quot; ...
@@ -241,7 +271,7 @@ user_ratings_df = fread(play_store_ratings)</code></pre>
 <div id="dimensions" class="section level4">
 <h4>Dimensions</h4>
 <pre class="r"><code>dim(user_ratings_df)</code></pre>
-<pre><code>## [1] 10472    13</code></pre>
+<pre><code>## [1] 10841    13</code></pre>
 <pre class="r"><code>dim(user_reviews_df)</code></pre>
 <pre><code>## [1] 64295     5</code></pre>
 </div>
@@ -292,27 +322,27 @@ user_ratings_df = fread(play_store_ratings)</code></pre>
 ## 5:  Positive               1.00              0.3000000
 ## 6:  Positive               1.00              0.3000000</code></pre>
 <pre class="r"><code>tail(user_ratings_df)</code></pre>
-<pre><code>##                            App        Category Rating Reviews Size Installs
-## 1:              Wi-Fi Networks    PRODUCTIVITY    4.2     115 1.4M  10,000+
-## 2:                      FI CFL         FINANCE    3.7     112 3.9M  10,000+
-## 3:            Tassa.fi Finland       LIFESTYLE    3.6     346 7.5M  50,000+
-## 4: TownWiFi | Wi-Fi Everywhere   COMMUNICATION    3.9    2372  58M 500,000+
-## 5:                  Jazz Wi-Fi   COMMUNICATION    3.4      49 4.0M  10,000+
-## 6:            Xposed Wi-Fi-Pwd PERSONALIZATION    3.5    1042 404k 100,000+
-##    Type Price Content Rating          Genres      Last Updated Current Ver
-## 1: Free     0       Everyone    Productivity   October 5, 2015         1.4
-## 2: Free     0       Everyone         Finance      July 5, 2018       1.1.1
-## 3: Free     0       Everyone       Lifestyle      May 22, 2018         5.5
-## 4: Free     0       Everyone   Communication    August 2, 2018       4.2.1
-## 5: Free     0       Everyone   Communication February 10, 2017         0.1
-## 6: Free     0       Everyone Personalization    August 5, 2014       3.0.0
-##     Android Ver
-## 1:   4.1 and up
-## 2:   5.0 and up
-## 3:   4.0 and up
-## 4:   4.2 and up
-## 5:   2.3 and up
-## 6: 4.0.3 and up</code></pre>
+<pre><code>##                                              App            Category Rating
+## 1:                                      FR Forms            BUSINESS    NaN
+## 2:                              Sya9a Maroc - FR              FAMILY    4.5
+## 3:              Fr. Mike Schmitz Audio Teachings              FAMILY    5.0
+## 4:                        Parkinson Exercices FR             MEDICAL    NaN
+## 5:                 The SCP Foundation DB fr nn5n BOOKS_AND_REFERENCE    4.5
+## 6: iHoroscope - 2018 Daily Horoscope &amp; Astrology           LIFESTYLE    4.5
+##    Reviews               Size    Installs Type Price Content Rating
+## 1:       0               9.6M         10+ Free     0       Everyone
+## 2:      38                53M      5,000+ Free     0       Everyone
+## 3:       4               3.6M        100+ Free     0       Everyone
+## 4:       3               9.5M      1,000+ Free     0       Everyone
+## 5:     114 Varies with device      1,000+ Free     0     Mature 17+
+## 6:  398307                19M 10,000,000+ Free     0       Everyone
+##               Genres       Last Updated        Current Ver        Android Ver
+## 1:          Business September 29, 2016              1.1.5         4.0 and up
+## 2:         Education      July 25, 2017               1.48         4.1 and up
+## 3:         Education       July 6, 2018                1.0         4.1 and up
+## 4:           Medical   January 20, 2017                1.0         2.2 and up
+## 5: Books &amp; Reference   January 19, 2015 Varies with device Varies with device
+## 6:         Lifestyle      July 25, 2018 Varies with device Varies with device</code></pre>
 <pre class="r"><code>tail(user_reviews_df)</code></pre>
 <pre><code>##                            App Translated_Review Sentiment Sentiment_Polarity
 ## 1: Houzz Interior Design Ideas               nan       nan                NaN
@@ -331,21 +361,29 @@ user_ratings_df = fread(play_store_ratings)</code></pre>
 </div>
 <div id="missing-values" class="section level4">
 <h4>Missing Values</h4>
-<pre class="r"><code>length(which(is.na(user_ratings_df)))</code></pre>
-<pre><code>## [1] 1355</code></pre>
-<pre class="r"><code>length(which(is.na(user_reviews_df)))</code></pre>
+<pre class="r"><code>how_many_na = function(df) {
+  length(which(is.na(df)))
+}
+
+how_many_na(user_ratings_df)</code></pre>
+<pre><code>## [1] 1474</code></pre>
+<pre class="r"><code>how_many_na(user_reviews_df)</code></pre>
 <pre><code>## [1] 53726</code></pre>
 </div>
 <div id="missing-values-per-column" class="section level4">
 <h4>Missing Values Per Column</h4>
-<pre class="r"><code>sapply(user_ratings_df, function(col) sum(is.na(col)))</code></pre>
+<pre class="r"><code>sum_of_na = function(df) {
+  sapply(df, function(col) sum(is.na(col)))
+}
+
+sum_of_na(user_ratings_df)</code></pre>
 <pre><code>##            App       Category         Rating        Reviews           Size 
-##              0              0           1355              0              0 
+##              0              0           1474              0              0 
 ##       Installs           Type          Price Content Rating         Genres 
 ##              0              0              0              0              0 
 ##   Last Updated    Current Ver    Android Ver 
 ##              0              0              0</code></pre>
-<pre class="r"><code>sapply(user_reviews_df, function(col) sum(is.na(col)))</code></pre>
+<pre class="r"><code>sum_of_na(user_reviews_df)</code></pre>
 <pre><code>##                    App      Translated_Review              Sentiment 
 ##                      0                      0                      0 
 ##     Sentiment_Polarity Sentiment_Subjectivity 
@@ -361,6 +399,7 @@ user_ratings_df = fread(play_store_ratings)</code></pre>
 <ul>
 <li><p>should also convert last updated to a datetime</p></li>
 <li><p>Type variable is a boolean – we should change it to <code>isFree</code> and use logical values</p></li>
+<li><p>Sentiment score can become a numeric value or we can ditch it in favor of the floating point score</p></li>
 </ul></li>
 </ul>
 </div>

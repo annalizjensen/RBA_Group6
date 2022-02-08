@@ -9,7 +9,6 @@ date: "January 29, 2022"
 knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
 library(data.table)
 library(readr)
-# todo aj: don't forget to include other ext libs for knitr
 ```
 
 ### *Step 1*
@@ -20,15 +19,67 @@ We met as a group on a few occasions to settle on the data set we will describe 
 
 #### An intro to the data set
 
-This data set...
+There are two data sets with Google Play Store data. Both were scraped from the Google Play website by Kaggle user [lava18](https://www.kaggle.com/lava18). 
+
+The "googleplaystore.csv" file lists app information including user-submitted app ratings, app downloads, app version, and more. 
+
+The "googleplaystore_user_reviews.csv" file lists data including sentiment, sentiment polarity and sentiment subjectivity score. The three latter variables for sentiment are intended to gauge the human perspective or intent behind the review.
+
+While the exact machine learning procedure used by the data set is not noted in the Kaggle description, we suspect either a naive Bayes or bag of words or similar classifier was used to generate the polarity and subjectivity natural language processing (NLP) scores.
+
+In NLP, polarity refers to the intensity of human emotion, classified between -1 and 0 for negative emotions and between 0 and 1 for positive emotions, with scores around 0 indicating emotional neutrality. Subjectivity in NLP is score between 0 and 1 and measures whether the statement is suspected to be objective facts (closer to 0) or an expression of opinions with little rational support (closer to 1).
+
+Variables in "googleplaystore.csv" are: 
+
+-   Name of App
+
+-   Category of App
+
+-   Average Rating
+
+-   Number of Reviews
+
+-   Size of App Software Download
+
+-   Number of App Installs
+
+-   Type (Free or Paid)
+
+-   Price (If not Free)
+
+-   Developer Content Rating
+
+-   Genre(s) of App
+
+-   Date App Last Updated
+
+-   Current Version of App
+
+-   Minimum Android OS Version Required
+
+Variables in "googleplaystore_user_reviews.csv": 
+
+-   Name of App
+
+-   Translated Review
+
+-   Sentiment Overall (Negative, Neutral, or Positive)
+
+-   Sentiment_Polarity
+
+-   Sentiment_Subjectivity
 
 #### Data source
 
-This data set came from ....
+[Kaggle -- Google Play Store App Reviews and Rating Web Scrape](https://www.kaggle.com/lava18/google-play-store-apps)
 
 #### Justification
 
-We chose this particular data set because...
+In this final project, we seek to apply the techniques and skills we have acquired in class to a real-world data set. After tidying the data, we intend to run analyses to determine insights that could guide future app development success. How does app size impact overall rating? What is user sentiment toward apps that update more frequently with new features (e.g. higher app versions) versus apps that mostly stay static? How does review sentiment change the longer an app has gone without updates? These are a few of the many questions we believe we can address while working with this data set. 
+
+This data set needs intensive cleaning, which will test our classroom skills with R. In Phase 1, Part 2, we list out just how many fields are explicitly missing within the data set, largely concentrated within the sentiment analysis of user reviews. Additionally, we find that many columns have data that could be coerced to a mode of data more easily analyzed -- for example, we can convert app version, number of downloads, and app size into numeric values in order to better compare them. 
+
+We also noticed when reviewing comments on the data set, that some users observe [erroneous data shifting](https://www.kaggle.com/lava18/google-play-store-apps/discussion/66015) at times within the CSV. We will seek to replicate that and other possible issues by reviewing other complaints and working through the cleaning phase of the data in the ensuing project.
 
 ### *Step 3*
 
@@ -109,3 +160,5 @@ We expect to clean the follow aspects of the data
     -   should also convert last updated to a datetime
 
     -   Type variable is a boolean -- we should change it to `isFree` and use logical values
+
+    -   Sentiment score can become a numeric value or we can ditch it in favor of the floating point score
