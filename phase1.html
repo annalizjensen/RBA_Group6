@@ -228,18 +228,30 @@ pre code {
 <pre class="r"><code>user_reviews_filename = &quot;googleplaystore_user_reviews.csv&quot;
 play_store_ratings = &quot;googleplaystore.csv&quot;
 user_reviews_df = fread(user_reviews_filename)
-user_ratings_df = fread(play_store_ratings, fill=T)</code></pre>
+user_ratings_df = fread(play_store_ratings, fill=T)
+df_set &lt;- dict(list(&quot;User Ratings&quot; = user_ratings_df,&quot;User Reviews&quot; = user_reviews_df))
+
+per_df_fn &lt;- function(fn_to_run){
+  for(key in df_set$keys()){
+    fn_to_run(df_set$get(key),key)
+  }
+}</code></pre>
 </div>
 <div id="listing-out-variables" class="section level4">
 <h4>Listing Out Variables</h4>
-<pre class="r"><code>names(user_ratings_df)</code></pre>
-<pre><code>##  [1] &quot;App&quot;            &quot;Category&quot;       &quot;Rating&quot;         &quot;Reviews&quot;       
-##  [5] &quot;Size&quot;           &quot;Installs&quot;       &quot;Type&quot;           &quot;Price&quot;         
-##  [9] &quot;Content Rating&quot; &quot;Genres&quot;         &quot;Last Updated&quot;   &quot;Current Ver&quot;   
-## [13] &quot;Android Ver&quot;</code></pre>
-<pre class="r"><code>names(user_reviews_df)</code></pre>
-<pre><code>## [1] &quot;App&quot;                    &quot;Translated_Review&quot;      &quot;Sentiment&quot;             
-## [4] &quot;Sentiment_Polarity&quot;     &quot;Sentiment_Subjectivity&quot;</code></pre>
+<pre class="r"><code>list_var &lt;- function(df,data_set_name){
+  col_list &lt;- paste(names(df),collapse=&quot; | &quot;)
+  cat(paste(&quot;Dataset &quot;, data_set_name, &quot; Features:&quot;,col_list,sep = &quot;\n&quot;))
+}
+
+per_df_fn(list_var)</code></pre>
+<pre><code>## Dataset 
+## User Ratings
+##  Features:
+## App | Category | Rating | Reviews | Size | Installs | Type | Price | Content Rating | Genres | Last Updated | Current Ver | Android VerDataset 
+## User Reviews
+##  Features:
+## App | Translated_Review | Sentiment | Sentiment_Polarity | Sentiment_Subjectivity</code></pre>
 </div>
 <div id="structure" class="section level4">
 <h4>Structure</h4>
@@ -270,10 +282,13 @@ user_ratings_df = fread(play_store_ratings, fill=T)</code></pre>
 </div>
 <div id="dimensions" class="section level4">
 <h4>Dimensions</h4>
-<pre class="r"><code>dim(user_ratings_df)</code></pre>
-<pre><code>## [1] 10841    13</code></pre>
-<pre class="r"><code>dim(user_reviews_df)</code></pre>
-<pre><code>## [1] 64295     5</code></pre>
+<pre class="r"><code>print_dim &lt;- function(df,data_set_name){
+  dim_df &lt;- dim(df)
+  cat(paste(&quot;Data set &quot;,data_set_name,&quot;has &quot;, dim_df[1] ,&quot; rows and &quot; , dim_df[2] , &quot; columns&quot;,sep=&#39; &#39;),sep=&#39;\n&#39;)
+}
+per_df_fn(print_dim)</code></pre>
+<pre><code>## Data set  User Ratings has  10841  rows and  13  columns
+## Data set  User Reviews has  64295  rows and  5  columns</code></pre>
 </div>
 <div id="head-and-tail" class="section level4">
 <h4>Head and Tail</h4>
@@ -361,33 +376,43 @@ user_ratings_df = fread(play_store_ratings, fill=T)</code></pre>
 </div>
 <div id="missing-values" class="section level4">
 <h4>Missing Values</h4>
-<pre class="r"><code>how_many_na = function(df) {
-  length(which(is.na(df)))
+<pre class="r"><code>how_many_na = function(df,data_set_name) {
+  no_na &lt;- length(which(is.na(df)))
+  cat(paste(&quot;Missing values in &quot;,data_set_name,&quot; dataset is &quot;,no_na,sep=&#39; &#39;),sep = &#39;\n&#39;)
 }
-
-how_many_na(user_ratings_df)</code></pre>
-<pre><code>## [1] 1474</code></pre>
-<pre class="r"><code>how_many_na(user_reviews_df)</code></pre>
-<pre><code>## [1] 53726</code></pre>
+per_df_fn(how_many_na)</code></pre>
+<pre><code>## Missing values in  User Ratings  dataset is  1474
+## Missing values in  User Reviews  dataset is  53726</code></pre>
 </div>
 <div id="missing-values-per-column" class="section level4">
 <h4>Missing Values Per Column</h4>
-<pre class="r"><code>sum_of_na = function(df) {
-  sapply(df, function(col) sum(is.na(col)))
+<pre class="r"><code>sum_of_na = function(df,data_set_name) {
+  per_col_na &lt;- sapply(df, function(col) sum(is.na(col)))
+    cat(paste(&quot;&quot;),sep=&#39;\n&#39;)
+    cat(paste(&quot;Missing values per column in &quot;,data_set_name,&quot; dataset is &quot;,per_col_na,sep=&#39; &#39;),sep = &#39;\n&#39;)
 }
 
-sum_of_na(user_ratings_df)</code></pre>
-<pre><code>##            App       Category         Rating        Reviews           Size 
-##              0              0           1474              0              0 
-##       Installs           Type          Price Content Rating         Genres 
-##              0              0              0              0              0 
-##   Last Updated    Current Ver    Android Ver 
-##              0              0              0</code></pre>
-<pre class="r"><code>sum_of_na(user_reviews_df)</code></pre>
-<pre><code>##                    App      Translated_Review              Sentiment 
-##                      0                      0                      0 
-##     Sentiment_Polarity Sentiment_Subjectivity 
-##                  26863                  26863</code></pre>
+per_df_fn(sum_of_na)</code></pre>
+<pre><code>## 
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  1474
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## Missing values per column in  User Ratings  dataset is  0
+## 
+## Missing values per column in  User Reviews  dataset is  0
+## Missing values per column in  User Reviews  dataset is  0
+## Missing values per column in  User Reviews  dataset is  0
+## Missing values per column in  User Reviews  dataset is  26863
+## Missing values per column in  User Reviews  dataset is  26863</code></pre>
 </div>
 <div id="summary-of-cleaning-expectations" class="section level4">
 <h4>Summary of Cleaning Expectations</h4>

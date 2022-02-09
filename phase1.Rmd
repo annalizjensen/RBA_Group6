@@ -9,6 +9,7 @@ date: "January 29, 2022"
 knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
 library(data.table)
 library(readr)
+library(collections)
 ```
 
 ### *Step 1*
@@ -90,13 +91,24 @@ user_reviews_filename = "googleplaystore_user_reviews.csv"
 play_store_ratings = "googleplaystore.csv"
 user_reviews_df = fread(user_reviews_filename)
 user_ratings_df = fread(play_store_ratings, fill=T)
+df_set <- dict(list("User Ratings" = user_ratings_df,"User Reviews" = user_reviews_df))
+
+per_df_fn <- function(fn_to_run){
+  for(key in df_set$keys()){
+    fn_to_run(df_set$get(key),key)
+  }
+}
 ```
 
 #### Listing Out Variables
 
 ```{r}
-names(user_ratings_df)
-names(user_reviews_df)
+list_var <- function(df,data_set_name){
+  col_list <- paste(names(df),collapse=" | ")
+  cat(paste("Dataset ", data_set_name, " Features:",col_list,sep = "\n"))
+}
+
+per_df_fn(list_var)
 ```
 
 #### Structure
@@ -109,8 +121,11 @@ str(user_reviews_df)
 #### Dimensions
 
 ```{r}
-dim(user_ratings_df)
-dim(user_reviews_df)
+print_dim <- function(df,data_set_name){
+  dim_df <- dim(df)
+  cat(paste("Data set ",data_set_name,"has ", dim_df[1] ," rows and " , dim_df[2] , " columns",sep=' '),sep='\n')
+}
+per_df_fn(print_dim)
 ```
 
 #### Head and Tail
@@ -126,25 +141,23 @@ tail(user_reviews_df)
 #### Missing Values
 
 ```{r}
-how_many_na = function(df) {
-  length(which(is.na(df)))
+how_many_na = function(df,data_set_name) {
+  no_na <- length(which(is.na(df)))
+  cat(paste("Missing values in ",data_set_name," dataset is ",no_na,sep=' '),sep = '\n')
 }
-
-how_many_na(user_ratings_df)
-how_many_na(user_reviews_df)
+per_df_fn(how_many_na)
 ```
 
 #### Missing Values Per Column
 
 ```{r}
-
-sum_of_na = function(df) {
-  sapply(df, function(col) sum(is.na(col)))
+sum_of_na = function(df,data_set_name) {
+  per_col_na <- sapply(df, function(col) sum(is.na(col)))
+    cat(paste(""),sep='\n')
+    cat(paste("Missing values per column in ",data_set_name," dataset is ",per_col_na,sep=' '),sep = '\n')
 }
 
-sum_of_na(user_ratings_df)
-
-sum_of_na(user_reviews_df)
+per_df_fn(sum_of_na)
 ```
 
 #### Summary of Cleaning Expectations
