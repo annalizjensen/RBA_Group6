@@ -20,9 +20,9 @@ We met as a group on a few occasions to settle on the data set we will describe 
 
 #### An intro to the data set
 
-There are two data sets with Google Play Store data. Both were scraped from the Google Play website by Kaggle user [lava18](https://www.kaggle.com/lava18). 
+There are two data sets with Google Play Store data.Both were scraped from the Google Play website by Kaggle user [lava18](https://www.kaggle.com/lava18).
 
-The "googleplaystore.csv" file lists app information including user-submitted app ratings, app downloads, app version, and more. 
+The "googleplaystore.csv" file lists app information including user-submitted app ratings, app downloads, app version, and more.
 
 The "googleplaystore_user_reviews.csv" file lists data including sentiment, sentiment polarity and sentiment subjectivity score. The three latter variables for sentiment are intended to gauge the human perspective or intent behind the review.
 
@@ -30,7 +30,7 @@ While the exact machine learning procedure used by the data set is not noted in 
 
 In NLP, polarity refers to the intensity of human emotion, classified between -1 and 0 for negative emotions and between 0 and 1 for positive emotions, with scores around 0 indicating emotional neutrality. Subjectivity in NLP is score between 0 and 1 and measures whether the statement is suspected to be objective facts (closer to 0) or an expression of opinions with little rational support (closer to 1).
 
-Variables in "googleplaystore.csv" are: 
+Variables in "googleplaystore.csv" are:
 
 -   Name of App
 
@@ -58,7 +58,7 @@ Variables in "googleplaystore.csv" are: 
 
 -   Minimum Android OS Version Required
 
-Variables in "googleplaystore_user_reviews.csv": 
+Variables in "googleplaystore_user_reviews.csv":
 
 -   Name of App
 
@@ -76,15 +76,15 @@ Variables in "googleplaystore_user_reviews.csv": 
 
 #### Justification
 
-In this final project, we seek to apply the techniques and skills we have acquired in class to a real-world data set. After tidying the data, we intend to run analyses to determine insights that could guide future app development success. How does app size impact overall rating? What is user sentiment toward apps that update more frequently with new features (e.g. higher app versions) versus apps that mostly stay static? How does review sentiment change the longer an app has gone without updates? These are a few of the many questions we believe we can address while working with this data set. 
+In this final project, we seek to apply the techniques and skills we have acquired in class to a real-world data set. After tidying the data, we intend to run analyses to determine insights that could guide future app development success. How does app size impact overall rating? What is user sentiment toward apps that update more frequently with new features (e.g. higher app versions) versus apps that mostly stay static? How does review sentiment change the longer an app has gone without updates? These are a few of the many questions we believe we can address while working with this data set.
 
-This data set needs intensive cleaning, which will test our classroom skills with R. In Phase 1, Part 2, we list out just how many fields are explicitly missing within the data set, largely concentrated within the sentiment analysis of user reviews. Additionally, we find that many columns have data that could be coerced to a mode of data more easily analyzed -- for example, we can convert app version, number of downloads, and app size into numeric values in order to better compare them. 
+This data set needs intensive cleaning, which will test our classroom skills with R. In Phase 1, Part 2, we list out just how many fields are explicitly missing within the data set, largely concentrated within the sentiment analysis of user reviews. Additionally, we find that many columns have data that could be coerced to a mode of data more easily analyzed -- for example, we can convert app version, number of downloads, and app size into numeric values in order to better compare them.
 
 We also noticed when reviewing comments on the data set, that some users observe [erroneous data shifting](https://www.kaggle.com/lava18/google-play-store-apps/discussion/66015) at times within the CSV. We will seek to replicate that and other possible issues by reviewing other complaints and working through the cleaning phase of the data in the ensuing project.
 
 ### *Step 3*
 
-#### Import
+#### Import & Helper Function to Avoid Duplicate Code
 
 ```{r}
 user_reviews_filename = "googleplaystore_user_reviews.csv"
@@ -93,19 +93,22 @@ user_reviews_df = fread(user_reviews_filename)
 user_ratings_df = fread(play_store_ratings, fill=T)
 df_set <- dict(list("User Ratings" = user_ratings_df,"User Reviews" = user_reviews_df))
 
-per_df_fn <- function(fn_to_run){
+per_df_fn <- function(fn_to_run) {
   for(key in df_set$keys()){
-    fn_to_run(df_set$get(key),key)
+    fn_to_run(df_set$get(key), key)
   }
 }
+
+new_line = "\n"
 ```
 
 #### Listing Out Variables
 
 ```{r}
-list_var <- function(df,data_set_name){
-  col_list <- paste(names(df),collapse=" | ")
-  cat(paste("Dataset ", data_set_name, " Features:",col_list,sep = "\n"))
+list_var <- function(df, data_set_name) {
+  col_list <- paste(names(df), collapse=" | ")
+  cat("Dataset:", data_set_name, new_line, " Features:", col_list, new_line)
+  cat("\n")
 }
 
 per_df_fn(list_var)
@@ -114,28 +117,28 @@ per_df_fn(list_var)
 #### Structure
 
 ```{r}
-str(user_ratings_df)
-str(user_reviews_df)
+per_df_fn(str)
 ```
 
 #### Dimensions
 
 ```{r}
-print_dim <- function(df,data_set_name){
+print_dim <- function(df, data_set_name) {
   dim_df <- dim(df)
-  cat(paste("Data set ",data_set_name,"has ", dim_df[1] ," rows and " , dim_df[2] , " columns",sep=' '),sep='\n')
+  cat("Data set", data_set_name,"has", dim_df[1], "rows and", 
+      dim_df[2], "columns.", new_line)
 }
+
 per_df_fn(print_dim)
 ```
 
 #### Head and Tail
 
 ```{r}
-head(user_ratings_df)
-head(user_reviews_df)
 
-tail(user_ratings_df)
-tail(user_reviews_df)
+per_df_fn(function(x, y) print(head(x)))
+
+per_df_fn(function(x, y) print(tail(x)))
 ```
 
 #### Missing Values
@@ -143,18 +146,20 @@ tail(user_reviews_df)
 ```{r}
 how_many_na = function(df,data_set_name) {
   no_na <- length(which(is.na(df)))
-  cat(paste("Missing values in ",data_set_name," dataset is ",no_na,sep=' '),sep = '\n')
+  cat("In", data_set_name, "there are this many missing values:", no_na, new_line)
 }
+
 per_df_fn(how_many_na)
 ```
 
 #### Missing Values Per Column
 
 ```{r}
-sum_of_na = function(df,data_set_name) {
+sum_of_na = function(df, data_set_name) {
   per_col_na <- sapply(df, function(col) sum(is.na(col)))
-    cat(paste(""),sep='\n')
-    cat(paste("Missing values per column in ",data_set_name," dataset is ",per_col_na,sep=' '),sep = '\n')
+  cat("In", data_set_name, "we are missing this many values per column:\n")
+  cat(paste(as.list(paste(names(df), per_col_na, collapse = new_line))), new_line)
+  cat("------", new_line)
 }
 
 per_df_fn(sum_of_na)

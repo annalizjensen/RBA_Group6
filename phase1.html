@@ -180,12 +180,12 @@ pre code {
 <h3><em>Step 2</em></h3>
 <div id="an-intro-to-the-data-set" class="section level4">
 <h4>An intro to the data set</h4>
-<p>There are two data sets with Google Play Store data. Both were scraped from the Google Play website by Kaggle user <a href="https://www.kaggle.com/lava18">lava18</a>. </p>
-<p>The “googleplaystore.csv” file lists app information including user-submitted app ratings, app downloads, app version, and more. </p>
+<p>There are two data sets with Google Play Store data.Both were scraped from the Google Play website by Kaggle user <a href="https://www.kaggle.com/lava18">lava18</a>.</p>
+<p>The “googleplaystore.csv” file lists app information including user-submitted app ratings, app downloads, app version, and more.</p>
 <p>The “googleplaystore_user_reviews.csv” file lists data including sentiment, sentiment polarity and sentiment subjectivity score. The three latter variables for sentiment are intended to gauge the human perspective or intent behind the review.</p>
 <p>While the exact machine learning procedure used by the data set is not noted in the Kaggle description, we suspect either a naive Bayes or bag of words or similar classifier was used to generate the polarity and subjectivity natural language processing (NLP) scores.</p>
 <p>In NLP, polarity refers to the intensity of human emotion, classified between -1 and 0 for negative emotions and between 0 and 1 for positive emotions, with scores around 0 indicating emotional neutrality. Subjectivity in NLP is score between 0 and 1 and measures whether the statement is suspected to be objective facts (closer to 0) or an expression of opinions with little rational support (closer to 1).</p>
-<p>Variables in “googleplaystore.csv” are: </p>
+<p>Variables in “googleplaystore.csv” are:</p>
 <ul>
 <li><p>Name of App</p></li>
 <li><p>Category of App</p></li>
@@ -201,7 +201,7 @@ pre code {
 <li><p>Current Version of App</p></li>
 <li><p>Minimum Android OS Version Required</p></li>
 </ul>
-<p>Variables in “googleplaystore_user_reviews.csv”: </p>
+<p>Variables in “googleplaystore_user_reviews.csv”:</p>
 <ul>
 <li><p>Name of App</p></li>
 <li><p>Translated Review</p></li>
@@ -216,46 +216,47 @@ pre code {
 </div>
 <div id="justification" class="section level4">
 <h4>Justification</h4>
-<p>In this final project, we seek to apply the techniques and skills we have acquired in class to a real-world data set. After tidying the data, we intend to run analyses to determine insights that could guide future app development success. How does app size impact overall rating? What is user sentiment toward apps that update more frequently with new features (e.g. higher app versions) versus apps that mostly stay static? How does review sentiment change the longer an app has gone without updates? These are a few of the many questions we believe we can address while working with this data set. </p>
-<p>This data set needs intensive cleaning, which will test our classroom skills with R. In Phase 1, Part 2, we list out just how many fields are explicitly missing within the data set, largely concentrated within the sentiment analysis of user reviews. Additionally, we find that many columns have data that could be coerced to a mode of data more easily analyzed – for example, we can convert app version, number of downloads, and app size into numeric values in order to better compare them. </p>
+<p>In this final project, we seek to apply the techniques and skills we have acquired in class to a real-world data set. After tidying the data, we intend to run analyses to determine insights that could guide future app development success. How does app size impact overall rating? What is user sentiment toward apps that update more frequently with new features (e.g. higher app versions) versus apps that mostly stay static? How does review sentiment change the longer an app has gone without updates? These are a few of the many questions we believe we can address while working with this data set.</p>
+<p>This data set needs intensive cleaning, which will test our classroom skills with R. In Phase 1, Part 2, we list out just how many fields are explicitly missing within the data set, largely concentrated within the sentiment analysis of user reviews. Additionally, we find that many columns have data that could be coerced to a mode of data more easily analyzed – for example, we can convert app version, number of downloads, and app size into numeric values in order to better compare them.</p>
 <p>We also noticed when reviewing comments on the data set, that some users observe <a href="https://www.kaggle.com/lava18/google-play-store-apps/discussion/66015">erroneous data shifting</a> at times within the CSV. We will seek to replicate that and other possible issues by reviewing other complaints and working through the cleaning phase of the data in the ensuing project.</p>
 </div>
 </div>
 <div id="step-3" class="section level3">
 <h3><em>Step 3</em></h3>
-<div id="import" class="section level4">
-<h4>Import</h4>
+<div id="import-helper-function-to-avoid-duplicate-code" class="section level4">
+<h4>Import &amp; Helper Function to Avoid Duplicate Code</h4>
 <pre class="r"><code>user_reviews_filename = &quot;googleplaystore_user_reviews.csv&quot;
 play_store_ratings = &quot;googleplaystore.csv&quot;
 user_reviews_df = fread(user_reviews_filename)
 user_ratings_df = fread(play_store_ratings, fill=T)
 df_set &lt;- dict(list(&quot;User Ratings&quot; = user_ratings_df,&quot;User Reviews&quot; = user_reviews_df))
 
-per_df_fn &lt;- function(fn_to_run){
+per_df_fn &lt;- function(fn_to_run) {
   for(key in df_set$keys()){
-    fn_to_run(df_set$get(key),key)
+    fn_to_run(df_set$get(key), key)
   }
-}</code></pre>
+}
+
+new_line = &quot;\n&quot;</code></pre>
 </div>
 <div id="listing-out-variables" class="section level4">
 <h4>Listing Out Variables</h4>
-<pre class="r"><code>list_var &lt;- function(df,data_set_name){
-  col_list &lt;- paste(names(df),collapse=&quot; | &quot;)
-  cat(paste(&quot;Dataset &quot;, data_set_name, &quot; Features:&quot;,col_list,sep = &quot;\n&quot;))
+<pre class="r"><code>list_var &lt;- function(df, data_set_name) {
+  col_list &lt;- paste(names(df), collapse=&quot; | &quot;)
+  cat(&quot;Dataset:&quot;, data_set_name, new_line, &quot; Features:&quot;, col_list, new_line)
+  cat(&quot;\n&quot;)
 }
 
 per_df_fn(list_var)</code></pre>
-<pre><code>## Dataset 
-## User Ratings
-##  Features:
-## App | Category | Rating | Reviews | Size | Installs | Type | Price | Content Rating | Genres | Last Updated | Current Ver | Android VerDataset 
-## User Reviews
-##  Features:
-## App | Translated_Review | Sentiment | Sentiment_Polarity | Sentiment_Subjectivity</code></pre>
+<pre><code>## Dataset: User Ratings 
+##   Features: App | Category | Rating | Reviews | Size | Installs | Type | Price | Content Rating | Genres | Last Updated | Current Ver | Android Ver 
+## 
+## Dataset: User Reviews 
+##   Features: App | Translated_Review | Sentiment | Sentiment_Polarity | Sentiment_Subjectivity</code></pre>
 </div>
 <div id="structure" class="section level4">
 <h4>Structure</h4>
-<pre class="r"><code>str(user_ratings_df)</code></pre>
+<pre class="r"><code>per_df_fn(str)</code></pre>
 <pre><code>## Classes &#39;data.table&#39; and &#39;data.frame&#39;:   10841 obs. of  13 variables:
 ##  $ App           : chr  &quot;Photo Editor &amp; Candy Camera &amp; Grid &amp; ScrapBook&quot; &quot;Coloring book moana&quot; &quot;U Launcher Lite â\200“ FREE Live Cool Themes, Hide Apps&quot; &quot;Sketch - Draw &amp; Paint&quot; ...
 ##  $ Category      : chr  &quot;ART_AND_DESIGN&quot; &quot;ART_AND_DESIGN&quot; &quot;ART_AND_DESIGN&quot; &quot;ART_AND_DESIGN&quot; ...
@@ -270,9 +271,8 @@ per_df_fn(list_var)</code></pre>
 ##  $ Last Updated  : chr  &quot;January 7, 2018&quot; &quot;January 15, 2018&quot; &quot;August 1, 2018&quot; &quot;June 8, 2018&quot; ...
 ##  $ Current Ver   : chr  &quot;1.0.0&quot; &quot;2.0.0&quot; &quot;1.2.4&quot; &quot;Varies with device&quot; ...
 ##  $ Android Ver   : chr  &quot;4.0.3 and up&quot; &quot;4.0.3 and up&quot; &quot;4.0.3 and up&quot; &quot;4.2 and up&quot; ...
-##  - attr(*, &quot;.internal.selfref&quot;)=&lt;externalptr&gt;</code></pre>
-<pre class="r"><code>str(user_reviews_df)</code></pre>
-<pre><code>## Classes &#39;data.table&#39; and &#39;data.frame&#39;:   64295 obs. of  5 variables:
+##  - attr(*, &quot;.internal.selfref&quot;)=&lt;externalptr&gt; 
+## Classes &#39;data.table&#39; and &#39;data.frame&#39;:   64295 obs. of  5 variables:
 ##  $ App                   : chr  &quot;10 Best Foods for You&quot; &quot;10 Best Foods for You&quot; &quot;10 Best Foods for You&quot; &quot;10 Best Foods for You&quot; ...
 ##  $ Translated_Review     : chr  &quot;I like eat delicious food. That&#39;s I&#39;m cooking food myself, case \&quot;\&quot;10 Best Foods\&quot;\&quot; helps lot, also \&quot;\&quot;Best &quot;| __truncated__ &quot;This help eating healthy exercise regular basis&quot; &quot;nan&quot; &quot;Works great especially going grocery store&quot; ...
 ##  $ Sentiment             : chr  &quot;Positive&quot; &quot;Positive&quot; &quot;nan&quot; &quot;Positive&quot; ...
@@ -282,17 +282,19 @@ per_df_fn(list_var)</code></pre>
 </div>
 <div id="dimensions" class="section level4">
 <h4>Dimensions</h4>
-<pre class="r"><code>print_dim &lt;- function(df,data_set_name){
+<pre class="r"><code>print_dim &lt;- function(df, data_set_name) {
   dim_df &lt;- dim(df)
-  cat(paste(&quot;Data set &quot;,data_set_name,&quot;has &quot;, dim_df[1] ,&quot; rows and &quot; , dim_df[2] , &quot; columns&quot;,sep=&#39; &#39;),sep=&#39;\n&#39;)
+  cat(&quot;Data set&quot;, data_set_name,&quot;has&quot;, dim_df[1], &quot;rows and&quot;, 
+      dim_df[2], &quot;columns.&quot;, new_line)
 }
+
 per_df_fn(print_dim)</code></pre>
-<pre><code>## Data set  User Ratings has  10841  rows and  13  columns
-## Data set  User Reviews has  64295  rows and  5  columns</code></pre>
+<pre><code>## Data set User Ratings has 10841 rows and 13 columns. 
+## Data set User Reviews has 64295 rows and 5 columns.</code></pre>
 </div>
 <div id="head-and-tail" class="section level4">
 <h4>Head and Tail</h4>
-<pre class="r"><code>head(user_ratings_df)</code></pre>
+<pre class="r"><code>per_df_fn(function(x, y) print(head(x)))</code></pre>
 <pre><code>##                                                     App       Category Rating
 ## 1:       Photo Editor &amp; Candy Camera &amp; Grid &amp; ScrapBook ART_AND_DESIGN    4.1
 ## 2:                                  Coloring book moana ART_AND_DESIGN    3.9
@@ -313,9 +315,8 @@ per_df_fn(print_dim)</code></pre>
 ## 3:   August 1, 2018              1.2.4 4.0.3 and up
 ## 4:     June 8, 2018 Varies with device   4.2 and up
 ## 5:    June 20, 2018                1.1   4.4 and up
-## 6:   March 26, 2017                1.0   2.3 and up</code></pre>
-<pre class="r"><code>head(user_reviews_df)</code></pre>
-<pre><code>##                      App
+## 6:   March 26, 2017                1.0   2.3 and up
+##                      App
 ## 1: 10 Best Foods for You
 ## 2: 10 Best Foods for You
 ## 3: 10 Best Foods for You
@@ -336,7 +337,7 @@ per_df_fn(print_dim)</code></pre>
 ## 4:  Positive               0.40              0.8750000
 ## 5:  Positive               1.00              0.3000000
 ## 6:  Positive               1.00              0.3000000</code></pre>
-<pre class="r"><code>tail(user_ratings_df)</code></pre>
+<pre class="r"><code>per_df_fn(function(x, y) print(tail(x)))</code></pre>
 <pre><code>##                                              App            Category Rating
 ## 1:                                      FR Forms            BUSINESS    NaN
 ## 2:                              Sya9a Maroc - FR              FAMILY    4.5
@@ -357,9 +358,8 @@ per_df_fn(print_dim)</code></pre>
 ## 3:         Education       July 6, 2018                1.0         4.1 and up
 ## 4:           Medical   January 20, 2017                1.0         2.2 and up
 ## 5: Books &amp; Reference   January 19, 2015 Varies with device Varies with device
-## 6:         Lifestyle      July 25, 2018 Varies with device Varies with device</code></pre>
-<pre class="r"><code>tail(user_reviews_df)</code></pre>
-<pre><code>##                            App Translated_Review Sentiment Sentiment_Polarity
+## 6:         Lifestyle      July 25, 2018 Varies with device Varies with device
+##                            App Translated_Review Sentiment Sentiment_Polarity
 ## 1: Houzz Interior Design Ideas               nan       nan                NaN
 ## 2: Houzz Interior Design Ideas               nan       nan                NaN
 ## 3: Houzz Interior Design Ideas               nan       nan                NaN
@@ -378,41 +378,45 @@ per_df_fn(print_dim)</code></pre>
 <h4>Missing Values</h4>
 <pre class="r"><code>how_many_na = function(df,data_set_name) {
   no_na &lt;- length(which(is.na(df)))
-  cat(paste(&quot;Missing values in &quot;,data_set_name,&quot; dataset is &quot;,no_na,sep=&#39; &#39;),sep = &#39;\n&#39;)
+  cat(&quot;In&quot;, data_set_name, &quot;there are this many missing values:&quot;, no_na, new_line)
 }
+
 per_df_fn(how_many_na)</code></pre>
-<pre><code>## Missing values in  User Ratings  dataset is  1474
-## Missing values in  User Reviews  dataset is  53726</code></pre>
+<pre><code>## In User Ratings there are this many missing values: 1474 
+## In User Reviews there are this many missing values: 53726</code></pre>
 </div>
 <div id="missing-values-per-column" class="section level4">
 <h4>Missing Values Per Column</h4>
-<pre class="r"><code>sum_of_na = function(df,data_set_name) {
+<pre class="r"><code>sum_of_na = function(df, data_set_name) {
   per_col_na &lt;- sapply(df, function(col) sum(is.na(col)))
-    cat(paste(&quot;&quot;),sep=&#39;\n&#39;)
-    cat(paste(&quot;Missing values per column in &quot;,data_set_name,&quot; dataset is &quot;,per_col_na,sep=&#39; &#39;),sep = &#39;\n&#39;)
+  cat(&quot;In&quot;, data_set_name, &quot;we are missing this many values per column:\n&quot;)
+  cat(paste(as.list(paste(names(df), per_col_na, collapse = new_line))), new_line)
+  cat(&quot;------&quot;, new_line)
 }
 
 per_df_fn(sum_of_na)</code></pre>
-<pre><code>## 
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  1474
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## Missing values per column in  User Ratings  dataset is  0
-## 
-## Missing values per column in  User Reviews  dataset is  0
-## Missing values per column in  User Reviews  dataset is  0
-## Missing values per column in  User Reviews  dataset is  0
-## Missing values per column in  User Reviews  dataset is  26863
-## Missing values per column in  User Reviews  dataset is  26863</code></pre>
+<pre><code>## In User Ratings we are missing this many values per column:
+## App 0
+## Category 0
+## Rating 1474
+## Reviews 0
+## Size 0
+## Installs 0
+## Type 0
+## Price 0
+## Content Rating 0
+## Genres 0
+## Last Updated 0
+## Current Ver 0
+## Android Ver 0 
+## ------ 
+## In User Reviews we are missing this many values per column:
+## App 0
+## Translated_Review 0
+## Sentiment 0
+## Sentiment_Polarity 26863
+## Sentiment_Subjectivity 26863 
+## ------</code></pre>
 </div>
 <div id="summary-of-cleaning-expectations" class="section level4">
 <h4>Summary of Cleaning Expectations</h4>
