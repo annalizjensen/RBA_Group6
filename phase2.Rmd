@@ -1,0 +1,95 @@
+---
+title: "Phase2"
+author: "Anna Liz Jensen"
+date: "3/9/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(collections)
+```
+
+### Set Up
+
+```{r}
+user_reviews_filename = "googleplaystore_user_reviews.csv"
+play_store_ratings = "googleplaystore.csv"
+user_reviews_df = fread(user_reviews_filename)
+user_ratings_df = fread(play_store_ratings, fill=T)
+# df_set <- dict(list("User Ratings" = user_ratings_df,"User Reviews" = user_reviews_df))
+```
+
+### Step 4 Clean & Tidy
+
+```{r}
+str(user_reviews_df)
+
+```
+
+```{r}
+str(user_ratings_df)
+```
+
+#### Ugly Shifting
+
+```{r}
+# if you look at the data, row 10473 is a problem, it's shifted over. 
+values_of_bad_row = user_ratings_df[10473]
+bad_row = user_ratings_df$Category == "1.9"
+
+# suppress the warning here -- it's just complaining about converting a 
+# str to char, but it actually works just fine in this case. 
+suppressWarnings(user_ratings_df[bad_row, 3:(ncol(user_ratings_df))] <-
+                   user_ratings_df[bad_row, 2:(ncol(user_ratings_df) -1)])
+
+# I got these from the GPlay website. This is the only egregiously bad row, 
+# and I have that available data, so this is more accurate than imputation
+# for this one off value.
+user_ratings_df[bad_row, 2] = "LIFESTYLE"
+user_ratings_df[bad_row, 10] = "Lifestyle"
+```
+
+#### Coercion, The Basics
+
+```{r}
+
+user_ratings_df$Reviews = as.numeric(user_ratings_df$Reviews)
+
+# \\D+ regex gsub keeps only digit chars
+user_ratings_df$Installs = as.numeric(gsub("\\D+", "", user_ratings_df$Installs))
+names(user_ratings_df)[6] = "Install Floor" # These are incremental, assume floors
+
+# 
+user_ratings_df$Type = as.logical(user_ratings_df$Type == "Free")
+names(user_ratings_df)[7] = "Is Free"
+
+user_ratings_df$Price = as.numeric(gsub("\\$", "", user_ratings_df$Price))
+
+user_ratings_df$`Last Updated` = as.Date(user_ratings_df$`Last Updated`, 
+                                         format = "%B %d, %Y")
+
+str(user_ratings_df)
+```
+
+#### Coercion, The Hairy
+
+```{r}
+
+
+```
+
+#### tidyr
+
+#### Imputation
+
+#### Splitting and UNiting
+
+#### 
+
+### Step 5 Exploratory Data Analysis
+
+### Step 6 Inferences
+
+### Step 7 Predictive Analytics and Modeling
