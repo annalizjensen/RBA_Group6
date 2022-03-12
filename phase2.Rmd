@@ -8,7 +8,10 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
-library(collections)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(VIM)
 ```
 
 ### Set Up
@@ -16,9 +19,8 @@ library(collections)
 ```{r}
 user_reviews_filename = "googleplaystore_user_reviews.csv"
 play_store_ratings = "googleplaystore.csv"
-user_reviews_df = fread(user_reviews_filename)
-user_ratings_df = fread(play_store_ratings, fill=T)
-# df_set <- dict(list("User Ratings" = user_ratings_df,"User Reviews" = user_reviews_df))
+user_reviews_df = read.csv(user_reviews_filename)
+user_ratings_df = read.csv(play_store_ratings, fill=T)
 ```
 
 ### Step 4 Clean & Tidy
@@ -36,7 +38,7 @@ str(user_ratings_df)
 
 ```{r}
 # if you look at the data, row 10473 is a problem, it's shifted over. 
-values_of_bad_row = user_ratings_df[10473]
+values_of_bad_row = user_ratings_df[10473,]
 bad_row = user_ratings_df$Category == "1.9"
 
 # suppress the warning here -- it's just complaining about converting a 
@@ -49,13 +51,16 @@ suppressWarnings(user_ratings_df[bad_row, 3:(ncol(user_ratings_df))] <-
 # for this one off value.
 user_ratings_df[bad_row, 2] = "LIFESTYLE"
 user_ratings_df[bad_row, 10] = "Lifestyle"
+
+str(user_ratings_df) # annoyingly, things get converted to char after the shift. 
 ```
 
-#### Coercion, The Basics
+#### Coercion: Basic Transformations
 
 ```{r}
 
 user_ratings_df$Reviews = as.numeric(user_ratings_df$Reviews)
+user_ratings_df$Rating = as.numeric(user_ratings_df$Rating)
 
 # \\D+ regex gsub keeps only digit chars
 user_ratings_df$Installs = as.numeric(gsub("\\D+", "", user_ratings_df$Installs))
@@ -67,26 +72,100 @@ names(user_ratings_df)[7] = "Is Free"
 
 user_ratings_df$Price = as.numeric(gsub("\\$", "", user_ratings_df$Price))
 
-user_ratings_df$`Last Updated` = as.Date(user_ratings_df$`Last Updated`, 
+user_ratings_df$Last.Updated = as.Date(user_ratings_df$Last.Updated, 
                                          format = "%B %d, %Y")
+
+user_ratings_df <- user_ratings_df %>%
+  separate(
+    Genres,
+    c("Genre1", "Genre2"),
+    sep = ";",
+    fill = "right"
+  )
 
 str(user_ratings_df)
 ```
 
-#### Coercion, The Hairy
+#### Coercion: Characters -> Numeric Bytes
 
 ```{r}
 
+# I would like to convert Size to numeric bytes
+# I will make a new column to do so where possible, because 'Varies with device'
+# is not the same as NA and is still an interesting data point. 
+# I'm adapting the solution specified here: https://stackoverflow.com/questions/10910688/converting-kilobytes-megabytes-etc-to-bytes-in-r
 
+size_numeric = user_ratings_df$Size
+unique(str_extract(size_numeric, ".$")) # only M and k matter, which is great
+size_numeric = na_if(size_numeric, "Varies with device")
+
+convert_to_num_bytes = function(x) {
+   byte_sizes = c("k" = 1024, "M" = 1024^2)
+   regex = "(\\d+\\.*\\d*)(k|M)"
+   digits = as.numeric(sub(regex, "\\1", x))
+   units = sub(regex, "\\2", x)
+   digits * unname(byte_sizes[units])
+}
+
+size_numeric = convert_to_num_bytes(size_numeric)
+user_ratings_df$Size_Numeric = size_numeric
+str(user_ratings_df)
 ```
 
-#### tidyr
+#### Coercion: Combining Data Sets
+
+```{r}
+grouped_review_stats = user_reviews_df %>%
+  select(App, Sentiment_Polarity, Sentiment_Subjectivity) %>%
+  filter(!is.na(Sentiment_Polarity) & !is.na(Sentiment_Subjectivity)) %>%
+  group_by(App) %>%
+  summarize(
+    n = n(), 
+    average_polarity = mean(Sentiment_Polarity),
+    average_subjectivity = mean(Sentiment_Subjectivity)
+  )
+
+str(grouped_review_stats)
+
+# It was at this point I discovered the review sentiment analysis only
+# covers # and A-H named apps. 
+
+# This is an example of Missing At Random. The missingness is not related to
+# the actually missing variable, but mostly to the name of the app, which is
+# related. Keyur, maybe we can do a test to verify that assertion?
+
+combined = merge(x = user_ratings_df, 
+                 y = grouped_review_stats,
+                 by = "App",
+                 all.x = T)
+
+str(combined)
+```
 
 #### Imputation
 
-#### Splitting and UNiting
+```{r}
+# so... honestly, i'm missing too many sentiment analysis vars for 
+# imputation to be of any use here. BUT we can try imputing ratings here!
+# what would be a good way to impute?
+summary(combined$Rating)
 
-#### 
+# definitely not mean or median. I don't think assuming 1474 apps without 
+# ratings are 4+/5 is a good idea. Let's do KNN instead. 
+
+# determine xlim of margin plot
+xlim_reviews = combined %>%
+  select(Reviews, Rating) %>%
+  filter(is.na(Rating))
+max_xlim = max(xlim_reviews$Reviews)
+
+knn_imp_ratings_5 = kNN(combined, k =5, variable = c("Rating"))
+knn_imp_ratings_5 %>%
+  select(Reviews, Rating, Rating_imp) %>%
+  marginplot(delimiter = "imp", main = "k = 5", xlim = c(0,max_xlim))
+
+
+```
 
 ### Step 5 Exploratory Data Analysis
 
