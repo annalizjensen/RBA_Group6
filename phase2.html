@@ -320,14 +320,15 @@ str(user_ratings_df)</code></pre>
 </div>
 <div id="coercion-combining-data-sets" class="section level4">
 <h4>Coercion: Combining Data Sets</h4>
-<pre class="r"><code>grouped_review_stats = user_reviews_df %&gt;%
+<pre class="r"><code>## Using median as it&#39;s less sensitve to outliers [ We dont want one person putting like -1 affecting others ]
+grouped_review_stats = user_reviews_df %&gt;%
   select(App, Sentiment_Polarity, Sentiment_Subjectivity) %&gt;%
   filter(!is.na(Sentiment_Polarity) &amp; !is.na(Sentiment_Subjectivity)) %&gt;%
   group_by(App) %&gt;%
   summarize(
     n = n(), 
     median_polarity = median(Sentiment_Polarity),
-    median_subjectivity = median(Sentiment_Subjectivity)
+    median_subjectivity = median(Sentiment_Subjectivity) 
   )
 
 str(grouped_review_stats)</code></pre>
@@ -383,15 +384,15 @@ str(combined)</code></pre>
 
 combined_missing_polarity &lt;- combined %&gt;% mutate(missing_median_polarity = is.na(median_polarity))
 
-combined_too_old_or_new &lt;- combined_missing_polarity %&gt;% filter(grepl(&quot;^[A-H]&quot;, App)) %&gt;% pull(missing_median_polarity)
+combined_ah &lt;- combined_missing_polarity %&gt;% filter(grepl(&quot;^[A-H]&quot;, App)) %&gt;% pull(missing_median_polarity)
 
-combined_regular &lt;- combined_missing_polarity %&gt;% filter(grepl(&quot;^[I-Z]&quot;, App)) %&gt;% pull(missing_median_polarity)
+combined_iz &lt;- combined_missing_polarity %&gt;% filter(grepl(&quot;^[I-Z]&quot;, App)) %&gt;% pull(missing_median_polarity)
 
-t.test(combined_too_old_or_new,combined_regular)</code></pre>
+t.test(combined_ah,combined_iz)</code></pre>
 <pre><code>## 
 ##  Welch Two Sample t-test
 ## 
-## data:  combined_too_old_or_new and combined_regular
+## data:  combined_ah and combined_iz
 ## t = -38.839, df = 5723, p-value &lt; 2.2e-16
 ## alternative hypothesis: true difference in means is not equal to 0
 ## 95 percent confidence interval:
@@ -408,15 +409,15 @@ t.test(combined_too_old_or_new,combined_regular)</code></pre>
 
 combined_missing_rating &lt;- combined %&gt;% mutate(missing_rating = is.na(Rating))
 
-combined_ah &lt;- combined_missing_rating %&gt;% filter(Last.Updated &gt; &quot;2018-02-08&quot; | Last.Updated &lt; &quot;2014-08-08&quot;) %&gt;% pull(missing_rating)
+combined_too_old_or_new &lt;- combined_missing_rating %&gt;% filter(Last.Updated &gt; &quot;2018-02-08&quot; | Last.Updated &lt; &quot;2014-08-08&quot;) %&gt;% pull(missing_rating)
 
-combined_iz &lt;- combined_missing_rating %&gt;% filter(Last.Updated &lt; &quot;2018-02-08&quot; &amp; Last.Updated &gt; &quot;2014-08-07&quot; ) %&gt;% pull(missing_rating)
+combined_regular &lt;- combined_missing_rating %&gt;% filter(Last.Updated &lt; &quot;2018-02-08&quot; &amp; Last.Updated &gt; &quot;2014-08-07&quot; ) %&gt;% pull(missing_rating)
 
-t.test(combined_ah,combined_iz)</code></pre>
+t.test(combined_too_old_or_new,combined_regular)</code></pre>
 <pre><code>## 
 ##  Welch Two Sample t-test
 ## 
-## data:  combined_ah and combined_iz
+## data:  combined_too_old_or_new and combined_regular
 ## t = -10.156, df = 6004.6, p-value &lt; 2.2e-16
 ## alternative hypothesis: true difference in means is not equal to 0
 ## 95 percent confidence interval:

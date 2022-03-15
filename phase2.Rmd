@@ -116,6 +116,8 @@ str(user_ratings_df)
 #### Coercion: Combining Data Sets
 
 ```{r}
+
+## Using median as it's less sensitve to outliers [ We dont want one person putting like -1 affecting others ]
 grouped_review_stats = user_reviews_df %>%
   select(App, Sentiment_Polarity, Sentiment_Subjectivity) %>%
   filter(!is.na(Sentiment_Polarity) & !is.na(Sentiment_Subjectivity)) %>%
@@ -123,7 +125,7 @@ grouped_review_stats = user_reviews_df %>%
   summarize(
     n = n(), 
     median_polarity = median(Sentiment_Polarity),
-    median_subjectivity = median(Sentiment_Subjectivity)
+    median_subjectivity = median(Sentiment_Subjectivity) 
   )
 
 str(grouped_review_stats)
@@ -158,11 +160,11 @@ str(combined)
 
 combined_missing_polarity <- combined %>% mutate(missing_median_polarity = is.na(median_polarity))
 
-combined_too_old_or_new <- combined_missing_polarity %>% filter(grepl("^[A-H]", App)) %>% pull(missing_median_polarity)
+combined_ah <- combined_missing_polarity %>% filter(grepl("^[A-H]", App)) %>% pull(missing_median_polarity)
 
-combined_regular <- combined_missing_polarity %>% filter(grepl("^[I-Z]", App)) %>% pull(missing_median_polarity)
+combined_iz <- combined_missing_polarity %>% filter(grepl("^[I-Z]", App)) %>% pull(missing_median_polarity)
 
-t.test(combined_too_old_or_new,combined_regular)
+t.test(combined_ah,combined_iz)
 
 ## As seen from above t-test our hypothesis is correct
 
@@ -173,13 +175,11 @@ t.test(combined_too_old_or_new,combined_regular)
 
 combined_missing_rating <- combined %>% mutate(missing_rating = is.na(Rating))
 
-combined_ah <- combined_missing_rating %>% filter(Last.Updated > "2018-02-08" | Last.Updated < "2014-08-08") %>% pull(missing_rating)
+combined_too_old_or_new <- combined_missing_rating %>% filter(Last.Updated > "2018-02-08" | Last.Updated < "2014-08-08") %>% pull(missing_rating)
 
-combined_iz <- combined_missing_rating %>% filter(Last.Updated < "2018-02-08" & Last.Updated > "2014-08-07" ) %>% pull(missing_rating)
+combined_regular <- combined_missing_rating %>% filter(Last.Updated < "2018-02-08" & Last.Updated > "2014-08-07" ) %>% pull(missing_rating)
 
-t.test(combined_ah,combined_iz)
-
-
+t.test(combined_too_old_or_new,combined_regular)
 
 
 # definitely not mean or median. I don't think assuming 1474 apps without 
@@ -244,6 +244,7 @@ corr.test(standardizeInstall)
 
 corr.test(combined %>% select(Reviews, Rating))
 
+
 # Here the co-relation co-efficient between Reviews and Ratings is -0.01 and implies no correlation exists between the two
 
 #Overall the attempt was to see if we can validate the assumptions that apps with higher ratings have more installs and hence also more reviews
@@ -278,8 +279,6 @@ summary(regressionOnRatingAgainstSentiment)
 regressionOnInstallsAgainstSentiment <- lm(log(1+`Install Floor`) ~ median_polarity + median_subjectivity ,data = combined_ah ,na.action = `na.exclude` )
 
 summary(regressionOnInstallsAgainstSentiment)
-
-
 
 
 ```
