@@ -12,6 +12,7 @@ library(stringr)
 library(dplyr)
 library(tidyr)
 library(VIM)
+library(psych)
 ```
 
 ### Set Up
@@ -121,8 +122,8 @@ grouped_review_stats = user_reviews_df %>%
   group_by(App) %>%
   summarize(
     n = n(), 
-    average_polarity = mean(Sentiment_Polarity),
-    average_subjectivity = mean(Sentiment_Subjectivity)
+    median_polarity = median(Sentiment_Polarity),
+    median_subjectivity = median(Sentiment_Subjectivity)
   )
 
 str(grouped_review_stats)
@@ -153,21 +154,49 @@ str(combined)
 # so... honestly, i'm missing too many sentiment analysis vars for 
 # imputation to be of any use here. BUT we can try imputing ratings here!
 # what would be a good way to impute?
-summary(combined$Rating)
+# But we can confirm if it's MAR wrt to starting alphabet
+
+combined_missing_polarity <- combined %>% mutate(missing_median_polarity = is.na(median_polarity))
+
+combined_too_old_or_new <- combined_missing_polarity %>% filter(grepl("^[A-H]", App)) %>% pull(missing_median_polarity)
+
+combined_regular <- combined_missing_polarity %>% filter(grepl("^[I-Z]", App)) %>% pull(missing_median_polarity)
+
+t.test(combined_too_old_or_new,combined_regular)
+
+## As seen from above t-test our hypothesis is correct
+
+
+## Rating Imputations
+
+### The thought here is apps that are quite recent [ within last 6 mos ] or less than 4 years old [app was never popular and is defunct now] don't have rating
+
+combined_missing_rating <- combined %>% mutate(missing_rating = is.na(Rating))
+
+combined_ah <- combined_missing_rating %>% filter(Last.Updated > "2018-02-08" | Last.Updated < "2014-08-08") %>% pull(missing_rating)
+
+combined_iz <- combined_missing_rating %>% filter(Last.Updated < "2018-02-08" & Last.Updated > "2014-08-07" ) %>% pull(missing_rating)
+
+t.test(combined_ah,combined_iz)
+
+
+
 
 # definitely not mean or median. I don't think assuming 1474 apps without 
 # ratings are 4+/5 is a good idea. Let's do KNN instead. 
 
+summary(combined$Rating)
+
 # determine xlim of margin plot
-# xlim_reviews = combined %>%
-#   select(Reviews, Rating) %>%
-#   filter(is.na(Rating))
-# max_xlim = max(xlim_reviews$Reviews)
+xlim_reviews = combined %>%
+  select(Reviews, Rating) %>%
+  filter(is.na(Rating))
+max_xlim = max(xlim_reviews$Reviews)
 # 
-# knn_imp_ratings_5 = kNN(combined, k =5, variable = c("Rating"))
-# knn_imp_ratings_5 %>%
-#   select(Reviews, Rating, Rating_imp) %>%
-#   marginplot(delimiter = "imp", main = "k = 5", xlim = c(0,max_xlim))
+knn_imp_ratings_5 = kNN(combined, k =5, variable = c("Rating"))
+knn_imp_ratings_5 %>%
+  select(Reviews, Rating, Rating_imp) %>%
+  marginplot(delimiter = "imp", main = "k = 5", xlim = c(0,max_xlim))
 
 
 ```
@@ -185,7 +214,18 @@ print(installsPerCategory[order(-installsPerCategory$Installs),])
 barplot(as.matrix(installsPerCategory$Installs),main = "Installs By Category",xlab ="Category",ylab="Installs",col="blue",beside=TRUE)
 
 
-combined_ah <- combined %>% filter(grepl("^[A-H]", App)) %>% group_by(Category) %>% summarize( median_polarity = median(average_polarity, na.rm = TRUE), median_subjectivity = median(average_subjectivity, na.rm = TRUE))
+
+## Scatter Plot Rating against Installs 
+installsPerCategory <- combined %>% group_by(Category) %>% summarize(Installs=sum(`Install Floor`))
+rownames(installsPerCategory) <- installsPerCategory$Category
+
+print(installsPerCategory[order(-installsPerCategory$Installs),])
+
+barplot(as.matrix(installsPerCategory$Installs),main = "Installs By Category",xlab ="Category",ylab="Installs",col="blue",beside=TRUE)
+
+
+
+combined_ah <- combined %>% filter(grepl("^[A-H]", App)) %>% group_by(Category) %>% summarize( median_polarity = median(median_polarity, na.rm = TRUE), median_subjectivity = median(median_subjectivity, na.rm = TRUE))
 
 str(combined_ah)
 
@@ -194,40 +234,52 @@ str(combined_ah)
 ### Step 6 Inferences
 
 ```{r}
+# Our  hypothesis here is that number of installs should be higher for apps with higher rating
 
-# Our main hypothesis here is that number of installs are controlled by free vs paid [we will use Price columns instead of isFree, rating and last_updated ( people won't install apps that haven't been updated in a while , no of reviews )
+#Standardize installs across categories before doing correlation test
+standardizeInstall <- combined %>% group_by(Category) %>% mutate(PercentOfTotalInstallsUnderCat = `Install Floor`/sum(`Install Floor`)) %>%  ungroup()  %>% select(PercentOfTotalInstallsUnderCat, Rating)
+
+corr.test(standardizeInstall)
 
 
+corr.test(combined %>% select(Reviews, Rating))
 
+# Here the co-relation co-efficient between Reviews and Ratings is -0.01 and implies no correlation exists between the two
+
+#Overall the attempt was to see if we can validate the assumptions that apps with higher ratings have more installs and hence also more reviews
 ```
 
 
 ### Step 7 Predictive Analytics and Modeling
 
 ```{r}
-## Since we only have sentiment data for a:H we only consider APPS from A -> H )
 
-combined_ah <- combined %>% filter(grepl("^[A-H]", App))
+## Predicting reviews based on rating ?
+regressionOnReviews <- lm(log(Reviews) ~ Rating,data = combined ,na.action = `na.exclude` )
+
+summary(regressionOnReviews)
+
 
 regressionOnInstalls <- lm(log(1+`Install Floor`) ~ Category,Rating,data = combined ,na.action = `na.exclude` )
 
 summary(regressionOnInstalls)
 
 
-## 
+## Sentiment Data
+## Since we only have sentiment data for a:H we only consider APPS from A -> H )
 
 combined_ah <- combined %>% filter(grepl("^[A-H]", App))
 
-regressionOnInstalls <- lm(Rating ~ average_polarity + average_subjectivity ,data = combined_ah ,na.action = `na.exclude` )
+regressionOnRatingAgainstSentiment <- lm(Rating ~ median_polarity + median_subjectivity ,data = combined_ah ,na.action = `na.exclude` )
 
-summary(regressionOnInstalls)
+summary(regressionOnRatingAgainstSentiment)
 
 
-combined_ah <- combined %>% filter(grepl("^[A-H]", App))
+regressionOnInstallsAgainstSentiment <- lm(log(1+`Install Floor`) ~ median_polarity + median_subjectivity ,data = combined_ah ,na.action = `na.exclude` )
 
-regressionOnInstalls <- lm(log(1+`Install Floor`) ~ average_polarity + average_subjectivity ,data = combined_ah ,na.action = `na.exclude` )
+summary(regressionOnInstallsAgainstSentiment)
 
-summary(regressionOnInstalls)
+
 
 
 ```
