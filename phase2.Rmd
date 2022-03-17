@@ -73,6 +73,11 @@ names(user_ratings_df)[7] = "Is Free"
 
 user_ratings_df$Price = as.numeric(gsub("\\$", "", user_ratings_df$Price))
 
+user_ratings_df$Size <- ifelse(user_ratings_df$Size == 'Varies with devices', np.nan, user_ratings_df$Size)
+user_ratings_df$Size <- gsub('M', 'e6',user_ratings_df$Size)
+user_ratings_df$Size <- gsub('k', 'e3', user_ratings_df$Size)
+user_ratings_df$Size <- as.numeric(user_ratings_df$Size)
+
 user_ratings_df$Last.Updated = as.Date(user_ratings_df$Last.Updated, 
                                          format = "%B %d, %Y")
 
@@ -254,7 +259,7 @@ corr.test(combined %>% select(Reviews, Rating))
 ### Step 7 Predictive Analytics and Modeling
 
 ```{r}
-
+library(randomForest)
 ## Predicting reviews based on rating ?
 regressionOnReviews <- lm(log(Reviews) ~ Rating,data = combined ,na.action = `na.exclude` )
 
@@ -280,5 +285,48 @@ regressionOnInstallsAgainstSentiment <- lm(log(1+`Install Floor`) ~ median_polar
 
 summary(regressionOnInstallsAgainstSentiment)
 
+combined$Last.Updated <- as.numeric(as.POSIXct(combined$Last.Updated, format="%Y-%m-%d"))
+lMean <- mean(combined$Last.Updated)
+stDev <- sd(combined$Last.Updated)
 
+combined$Last.Updated <- (combined$Last.Updated - lMean)/stDev
+
+regressionOnRatingAgainstLastUpdated <- lm(Rating ~ Last.Updated ,data = combined ,na.action = `na.exclude` )
+summary(regressionOnRatingAgainstLastUpdated)
+
+x = data.frame(log(as.numeric(as.POSIXct("2017-05-23", format="%Y-%m-%d") ) ) )
+colnames(x) <- c("Last.Updated")
+x$Last.Updated <- (x$Last.Updated - lMean)/stDev
+
+std_r <- predict.lm(regressionOnRatingAgainstLastUpdated,x)
+```
+
+
+#### Random Forest
+```{r}
+
+cm <- combined %>% select(Rating,Reviews,`Install Floor`,Size,`Is Free`)
+names(cm) <- make.names(names(cm))
+
+trainIndex <- sample(nrow(cm), nrow(cm)*.7)
+trainSet <- cm[trainIndex,]
+validationSet <- cm[-trainIndex,]
+
+
+str(trainSet)
+
+regressor <- randomForest(formula=Rating ~ .,data=trainSet,na.action = `na.exclude`)
+str(regressor)
+
+print("Observed Error mse is quite high")
+regressor.rsq
+
+predicted_values <- as.vector(predict(regressor,newdata=validationSet %>% select(-Rating)))
+
+
+plot(validationSet$Reviews,predicted_values,xlab="",ylab="",col="blue")
+par(new=TRUE)
+plot(validationSet$Reviews,validationSet$Rating,xlab="Reviews",ylab="Predicted_Rating(blue) and Rating(blue)",col="green")
+
+## For lower value of Reviews vs Rating the model performs badly due to missing data 
 ```
