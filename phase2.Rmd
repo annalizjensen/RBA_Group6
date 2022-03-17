@@ -1,7 +1,7 @@
 ---
-title: "Phase2"
-author: "Anna Liz Jensen,Keyur Joshi,Maridol Guillen, Brooke Haley"
-date: "3/9/2022"
+title: "Phase 2 Group Assignment"
+author: "Anna Liz Jensen, Keyur Joshi, Maridol Guillen, Brooke Haley"
+date: "3/16/2022"
 output: html_document
 ---
 
@@ -13,6 +13,7 @@ library(dplyr)
 library(tidyr)
 library(VIM)
 library(psych)
+library(randomForest)
 ```
 
 ### Set Up
@@ -28,7 +29,6 @@ user_ratings_df = read.csv(play_store_ratings, fill=T)
 
 ```{r}
 str(user_reviews_df)
-
 ```
 
 ```{r}
@@ -67,7 +67,7 @@ user_ratings_df$Rating = as.numeric(user_ratings_df$Rating)
 user_ratings_df$Installs = as.numeric(gsub("\\D+", "", user_ratings_df$Installs))
 names(user_ratings_df)[6] = "Install Floor" # These are incremental, assume floors
 
-# 
+# Switch character vector with two options to a boolean
 user_ratings_df$Type = as.logical(user_ratings_df$Type == "Free")
 names(user_ratings_df)[7] = "Is Free"
 
@@ -116,33 +116,19 @@ str(user_ratings_df)
 #### Coercion: Combining Data Sets
 
 ```{r}
-
-## Using median as it's less sensitve to outliers [ We don't want one person putting like -1 affecting others ]
 grouped_review_stats = user_reviews_df %>%
   select(App, Sentiment_Polarity, Sentiment_Subjectivity) %>%
   filter(!is.na(Sentiment_Polarity) & !is.na(Sentiment_Subjectivity)) %>%
   group_by(App) %>%
   summarize(
-    n = n(), 
+    n = n(),
     median_polarity = median(Sentiment_Polarity),
-    median_subjectivity = median(Sentiment_Subjectivity) 
+    median_subjectivity = median(Sentiment_Subjectivity)
   )
 
 str(grouped_review_stats)
 
-# It was at this point I discovered the review sentiment analysis only
-# covers # and A-H named apps. 
-
-# This is an example of Missing At Random. The missingness is not related to
-# the actually missing variable, but mostly to the name of the app, which is
-# related. Keyur, maybe we can do a test to verify that assertion?
-
-#Testing for MAR between Sentiment_Polarity and AppName
-
-
-
-
-combined = merge(x = user_ratings_df, 
+combined = merge(x = user_ratings_df,
                  y = grouped_review_stats,
                  by = "App",
                  all.x = T)
@@ -150,118 +136,420 @@ combined = merge(x = user_ratings_df,
 str(combined)
 ```
 
-#### Imputation
+#### Checking Randomness
 
 ```{r}
-# so... honestly, i'm missing too many sentiment analysis vars for 
-# imputation to be of any use here. BUT we can try imputing ratings here!
-# what would be a good way to impute?
-# But we can confirm if it's MAR wrt to starting alphabet
 
-combined_missing_polarity <- combined %>% mutate(missing_median_polarity = is.na(median_polarity))
+# It was at this point we discovered the review sentiment analysis only
+# covers A-H named apps.
 
-combined_ah <- combined_missing_polarity %>% filter(grepl("^[A-H]", App)) %>% pull(missing_median_polarity)
-
-combined_iz <- combined_missing_polarity %>% filter(grepl("^[I-Z]", App)) %>% pull(missing_median_polarity)
-
-t.test(combined_ah,combined_iz)
-
-## As seen from above t-test our hypothesis is correct
+# This is an example of Missing At Random. The missingness is not related to
+# the actually missing variable, but mostly to the name of the app, which is
+# related. 
 
 
-## Rating Imputations
+combined_missing_polarity <- combined %>% 
+  mutate(missing_median_polarity = is.na(median_polarity))
 
-### The thought here is apps that are quite recent [ within last 6 mos ] or more than 4 years old [app was never popular and is defunct now] don't have rating
+combined_too_old_or_new <- combined_missing_polarity %>% 
+  filter(grepl("^[A-H]", App)) %>% 
+  pull(missing_median_polarity)
 
-combined_missing_rating <- combined %>% mutate(missing_rating = is.na(Rating))
-
-combined_too_old_or_new <- combined_missing_rating %>% filter(Last.Updated > "2018-02-08" | Last.Updated < "2014-08-08") %>% pull(missing_rating)
-
-combined_regular <- combined_missing_rating %>% filter(Last.Updated < "2018-02-08" & Last.Updated > "2014-08-07" ) %>% pull(missing_rating)
+combined_regular <- combined_missing_polarity %>% 
+  filter(grepl("^[I-Z]", App)) %>% 
+  pull(missing_median_polarity)
 
 t.test(combined_too_old_or_new,combined_regular)
 
+## As seen from above t-test our hypothesis that missing polarity is MAR is correct
 
-# definitely not mean or median. I don't think assuming 1474 apps without 
-# ratings are 4+/5 is a good idea. Let's do KNN instead. 
+# We wanted to check another type of randomness:
+# The thought here is apps that are quite recent [ within last 6 mos ] or less than 4 years old [app was never popular and is defunct now] don't have rating
+
+combined_missing_rating <- combined %>% mutate(missing_rating = is.na(Rating))
+
+combined_ah <- combined_missing_rating %>% filter(Last.Updated > "2018-02-08" | Last.Updated < "2014-08-08") %>% pull(missing_rating)
+
+combined_iz <- combined_missing_rating %>% filter(Last.Updated < "2018-02-08" & Last.Updated > "2014-08-07" ) %>% pull(missing_rating)
+
+t.test(combined_ah,combined_iz)
+
+# We can see that this hypothesis is also correct, and ratings are missing at random as well, impacted by the related variable Last Updated. 
+```
+
+#### Imputation
+
+```{r}
+# So... honestly, I'm missing too many sentiment analysis variables for 
+# imputation to be of any use here. BUT we can try imputing ratings here!
+# What would be a good way to impute?
+
+## Rating Imputations
+
+# definitely not mean or median, based on summary here. 
+# I don't think assuming 1474 apps without 
+# ratings are 4+/5 is a good idea. 
 
 summary(combined$Rating)
 
-# determine xlim of margin plot
+# Let's do KNN instead. 
+
+# determine how to build the dimensions of the plot
 xlim_reviews = combined %>%
   select(Reviews, Rating) %>%
   filter(is.na(Rating))
 max_xlim = max(xlim_reviews$Reviews)
-# 
+
+# Compute and compare KNN imputations. 
+
 knn_imp_ratings_5 = kNN(combined, k =5, variable = c("Rating"))
 knn_imp_ratings_5 %>%
   select(Reviews, Rating, Rating_imp) %>%
   marginplot(delimiter = "imp", main = "k = 5", xlim = c(0,max_xlim))
 
+# knn_imp_ratings_10 = kNN(combined, k =10, variable = c("Rating"))
+# knn_imp_ratings_10 %>%
+#   select(Reviews, Rating, Rating_imp) %>%
+#   marginplot(delimiter = "imp", main = "k = 10", xlim = c(0,max_xlim))
+# 
+# knn_imp_ratings_15 = kNN(combined, k =15, variable = c("Rating"))
+# knn_imp_ratings_15 %>%
+#   select(Reviews, Rating, Rating_imp) %>%
+#   marginplot(delimiter = "imp", main = "k = 15", xlim = c(0,max_xlim))
+
+# This imputation on such a huge data set really pushes the memory bounds of my
+# work environment. Suffice it to say, k=5 vs. k=10 vs. k=15 doesn't make a ton 
+# of difference in variation or fit, so we'll keep it to k=5
+```
+
+### Step 5: Exploratory Data Analysis
+
+#### Some helpful utilities
+
+```{r}
+# Let's use GPlay branded colors to make pretty graphs!
+# We know people like them because Google has a/b tested them to death.
+# https://www.schemecolor.com/google-play-new.php
+
+color_blue = "#3BCCFF"
+color_red = "#FF3333"
+color_yellow = "#FFD400"
+color_green = "#48FF48"
+
+options(scipen = 10)
 
 ```
 
-### Step 5 Exploratory Data Analysis
+#### Basic Distribution Visuals
 
 ```{r}
-## Attempting to distribution of Number of Installs against Category 
+# Pie chart of categories, genres
+categories_pie = combined %>%
+  select(Category) %>%
+  group_by(Category) %>%
+  summarise(n = n()) %>%
+  arrange(-n)
+barplot(categories_pie$n,
+    names = categories_pie$Category,
+    main = "App Store Data by Category",
+    col = color_green)
 
-installsPerCategory <- combined %>% group_by(Category) %>% summarize(Installs=sum(`Install Floor`))
-rownames(installsPerCategory) <- installsPerCategory$Category
+# We can see here that Family category is the best represented in the data set, 
+# while Beauty is the least represented. 
 
-print(installsPerCategory[order(-installsPerCategory$Installs),])
+# box plot of ratings
+ratings_plot = combined$Rating
+boxplot(ratings_plot, horizontal = T,
+        main = "Distribution of Ratings",
+        xlab = "Average App Rating",
+        col = color_blue)
 
-barplot(as.matrix(installsPerCategory$Installs),main = "Installs By Category",xlab ="Category",ylab="Installs",col="blue",beside=TRUE)
+# In general, ratings are mostly about 4.0 in a fairly normally distributed set. 
+# The ones that are below 3.0 are exceptionally terrible (outliers).
+
+# box plot of reviews
+reviews_plot = combined$Reviews
+hist(reviews_plot, 
+        main = "Distribution of Reviews", 
+        xlab = "Number of Reviews", col = color_red)
+
+# Most apps don't have a ton of reviews (< 1000), but well-known apps like
+# WhatsApp, Facebook, Instagram, and their ilk command popularity in the review
+# section, boasting numbers over 70m. 
+
+# box plot of size numeric
+bytes_plot = combined$Size_Numeric
+boxplot(bytes_plot, horizontal = T,
+        main = "Distribution of App Sizes",
+        xlab = "Size of App (in bytes)",
+        col = color_green)
+
+# Most apps are very small, but some very large apps certainly drag up the average.
+
+# 1 genre vs 2 genres
+genre2_ct = sum(!is.na(combined$Genre2))
+# from cleaning, we know that all Genre2 colums accompany a Genre1
+genre1_ct = sum(!is.na(combined$Genre1)) - genre2_ct
+pie(c(genre1_ct, genre2_ct), 
+    labels = c("Only One Genre", "Two Genres"), 
+    col = c(color_red, color_blue),
+    main = "Only one genre defined vs. two")
+  
+# The majority of apps that have defined genres only have one labeled. 
 
 
+# Free vs Paid
 
-## Scatter Plot Rating against Installs 
-installsPerCategory <- combined %>% group_by(Category) %>% summarize(Installs=sum(`Install Floor`))
-rownames(installsPerCategory) <- installsPerCategory$Category
+# Box plot of paid prices
+paid_prices = combined$Price[combined$Price > 0]
+hist(paid_prices,
+        main = "Distribution of Paid App Prices",
+        xlab = "Price of App (USD)",
+        col = color_yellow)
 
-print(installsPerCategory[order(-installsPerCategory$Installs),])
+# Most paid apps are relatively inexpensive, but there are certainly some outliers.
 
-barplot(as.matrix(installsPerCategory$Installs),main = "Installs By Category",xlab ="Category",ylab="Installs",col="blue",beside=TRUE)
+# Who is charging that much for an app???
+expensive_apps = combined %>%
+  filter(Price > 300) %>%
+  select(App, `Install Floor`, Price) 
+head(expensive_apps)
 
+# Who is buying these "I am rich" apps? Too bad we don't have demographic data.
+# Maybe if we weren't paying tuition. 
+# The developers who have thousands of downloads on $300 apps must feel pretty
+# good about themselves. 
+```
 
+```{r}
 
-combined_ah <- combined %>% filter(grepl("^[A-H]", App)) %>% group_by(Category) %>% summarize( median_polarity = median(median_polarity, na.rm = TRUE), median_subjectivity = median(median_subjectivity, na.rm = TRUE))
+# Which category of apps tend to receive the highest ratings?
+cat_vs_rating = combined %>%
+  select(Category, Rating) %>%
+  filter(!is.na(Rating) & !is.na(Category)) %>%
+  group_by(Category) %>%
+    summarize(
+      mean_rating = mean(Rating)
+    ) %>%
+  arrange(-mean_rating)
 
-str(combined_ah)
+plot_cat_vs_ratings = cat_vs_rating$mean_rating
+names(plot_cat_vs_ratings) = cat_vs_rating$Category
+barplot(plot_cat_vs_ratings,
+        names = cat_vs_rating$Category,
+        col = color_blue,
+        ylim = c(0, 5),
+        ylab = "Average Rating", 
+        xlab = "App Category",
+        main = "Average Rating vs. App Category"
+        )
 
+# While Events apps are rated best on average, Dating apps are rated the worst.
+
+# Does length of app name matter for rating?
+summary(str_length(combined$App))
+
+# The max app name is pretty big, but most fall between 0 and 30 characters
+
+length_vs_rating = combined %>%
+  select(App, Rating)  %>%
+  filter(!is.na(Rating)) %>%
+  mutate(app_name_length = str_length(App)) %>%
+  mutate(length_ranges = cut(app_name_length, c(0, 5, 10, 15, 20, 25, 30, Inf))) %>%
+  group_by(length_ranges) %>%
+  summarise(mean_rating = mean(Rating)) %>%
+  arrange(-mean_rating)
+
+plot_app_name_len_vs_rating = length_vs_rating$mean_rating
+names(plot_app_name_len_vs_rating) = length_vs_rating$length_ranges
+barplot(plot_app_name_len_vs_rating,
+        names = length_vs_rating$length_ranges,
+        col = color_yellow,
+        ylim = c(0,5),
+        ylab = "Average Rating",
+        xlab = "Length of App Name (Characters)",
+        main = "Average Rating vs. App Name Length"
+        )
+# Generally, apps with longer names tend to do better than ones with shorter names.
+# We suspect it's so users get more information up front when they search 
+# for apps in the store. 
+
+summary(combined$Size_Numeric)
+
+# How does app size relate to rating?
+app_size_vs_rating = combined %>%
+  select(Size_Numeric, Rating)  %>%
+  filter(!is.na(Rating) & !is.na(Size_Numeric)) %>%
+  mutate(ranges = cut(Size_Numeric, 10)) %>%
+  group_by(ranges) %>%
+  summarize(mean_rating = mean(Rating)) %>%
+  arrange(-mean_rating)
+
+plot_size_vs_rating = app_size_vs_rating$mean_rating
+names(plot_size_vs_rating) = as.character(app_size_vs_rating$ranges)
+barplot(plot_size_vs_rating,
+        names = names(plot_size_vs_rating),
+        col = color_red,
+        ylab = "Average Rating",
+        xlab = "Size of App in bytes",
+        main = "Average Rating vs. Size of App"
+        )
+  
+# Surprisingly, the larger apps tend to rate better. Of course, that's on average.
+
+# Do app size varies apps tend to rate better?
+
+varies = combined %>%
+  select(Size, Rating) %>%
+  filter(!is.na(Size) & !is.na(Rating)) %>%
+  mutate(does_vary = Size == "Varies with device") %>%
+  group_by(does_vary) %>%
+  summarize(mean_rating = mean(Rating))
+
+plot_varies_with_device_ratings = varies$mean_rating
+names(plot_varies_with_device_ratings) = ifelse(varies$does_vary, 'Varies with device', 'Always the same size')
+
+barplot(plot_varies_with_device_ratings,
+        names = names(plot_varies_with_device_ratings),
+        col = color_green,
+        ylab = "Average Rating",
+        xlab = "Is the app size standard?",
+        main = "Average Rating vs. App size variation")
+
+# We can see the customized app sizes to device perform slightly better, but
+# not significantly. 
+
+# Does number of installs relate to overall rating?
+num_installs_vs_rating = combined %>%
+  select(`Install Floor`, Rating) %>%
+  filter(!is.na(`Install Floor`) & !is.na(Rating)) %>%
+  group_by(`Install Floor`) %>%
+  summarize(mean_rating = mean(Rating)) %>%
+  arrange(-mean_rating)
+
+plot_installs_vs_rating = num_installs_vs_rating$mean_rating
+names(plot_installs_vs_rating) = as.character(num_installs_vs_rating$`Install Floor`)
+
+barplot(plot_installs_vs_rating,
+        names = names(plot_installs_vs_rating),
+        col = color_green,
+        ylab = "Average Rating",
+        xlab = "Install Floor",
+        main = "Average Rating vs. Install Floor")
+
+# While we can see that apps that haven't been installed much perform well,
+# we can probably chalk this up to the developer and their family and friends
+# rating the app well. After the inflated small install ratings, the top downloaded
+# apps tend the rate the best, which is a sensible correlation. Why would you 
+# download something you hate?
+
+# What is the average rating of free apps vs paid apps?
+paid_vs_free_ratings = combined %>%
+  select(`Is Free`, Rating) %>%
+  filter(!is.na(Rating)) %>%
+  group_by(`Is Free`) %>%
+  summarize(mean_rating = mean(Rating)) %>%
+  arrange(-mean_rating)
+
+barplot(paid_vs_free_ratings$mean_rating,
+        names = paid_vs_free_ratings$`Is Free`,
+        col = color_yellow,
+        ylab = "Average Rating",
+        xlab = "Free?",
+        main = "Average Rating vs. Free or Not")
+
+# Paid apps just barely outrate free apps, but we should note that there are 
+# significantly more free apps, so it's pretty remarkable that the averages are
+# this close. There are quite a few missing ratings, which we've already discussed
+# causes for in an earlier section covering missingness.
+
+# What is the range of paid app ratings?
+summary(combined$Rating[combined$Price > 0])
+
+# In general, people feel mostly positive about paid apps, given that most ratings are above 4. 
+
+# What is the average rating per content rating?
+content_rating_vs_rating = combined %>%
+  select(Content.Rating, Rating) %>%
+  filter(!is.na(Rating)) %>%
+  group_by(Content.Rating) %>%
+  summarize(mean_rating = mean(Rating)) %>%
+  arrange(-mean_rating)
+
+barplot(content_rating_vs_rating$mean_rating,
+        names = content_rating_vs_rating$Content.Rating,
+        col = color_blue,
+        ylab = "Average Rating",
+        xlab = "Content Rating",
+        main = "Average Rating vs Content Rating Designation")
+
+# While adult-rated apps rate best, people in general seem to prefer apps that have
+# some rating of the content. It is likely also that the Play Store only 
+# spotlights apps that have a rating to its users, so it might have to do with
+# discovery. 
+
+# How does updating your app relate to your ratings? 
+# Going to group by year for simplicity's sake.
+year_vs_rating = combined %>%
+  select(Last.Updated, Rating) %>%
+  filter(!is.na(Rating)) %>%
+  mutate(year = format(Last.Updated, "%Y")) %>%
+  group_by(year) %>%
+  summarize(mean_rating = mean(Rating)) %>%
+  arrange(-mean_rating)
+
+barplot(year_vs_rating$mean_rating,
+        names = year_vs_rating$year,
+        col = color_green,
+        ylab = "Average Rating",
+        xlab = "Year Last Updated",
+        main = "Average Rating vs Year Last Updated")
+
+# Users seem to generally prefer recently updated apps (the data set is from 2018).
+# But interestingly, they also like apps from 2010. It's possible these were one
+# time tools or gimmicks that just work. Or they were beloved and then abandoned 
+# and largely forgotten by future users. It's hard to draw too many conclusions
+# without knowing when the reviews were left.
 ```
 
 ### Step 6 Inferences
 
 ```{r}
-# Our  hypothesis here is that number of installs should be higher for apps with higher rating
+# Our hypothesis here is that number of installs should be higher for apps with higher rating
 
 #Standardize installs across categories before doing correlation test
-standardizeInstall <- combined %>% group_by(Category) %>% mutate(PercentOfTotalInstallsUnderCat = `Install Floor`/sum(`Install Floor`)) %>%  ungroup()  %>% select(PercentOfTotalInstallsUnderCat, Rating)
+standardizeInstall <- combined %>% 
+  group_by(Category) %>% 
+  mutate(PercentOfTotalInstallsUnderCat = `Install Floor`/sum(`Install Floor`)) %>%
+  ungroup()  %>% 
+  select(PercentOfTotalInstallsUnderCat, Rating)
 
 corr.test(standardizeInstall)
 
 
 corr.test(combined %>% select(Reviews, Rating))
 
-
 # Here the co-relation co-efficient between Reviews and Ratings is -0.01 and implies no correlation exists between the two
 
-#Overall the attempt was to see if we can validate the assumptions that apps with higher ratings have more installs and hence also more reviews
+# Overall the attempt was to see if we can validate the assumptions that apps with higher ratings have more installs and hence also more reviews
 ```
-
 
 ### Step 7 Predictive Analytics and Modeling
 
 ```{r}
 
-## Predicting reviews based on rating ?
-regressionOnReviews <- lm(log(Reviews) ~ Rating,data = combined ,na.action = `na.exclude` )
+# Predicting reviews based on rating ?
+regressionOnReviews <- lm(log(Reviews) ~ Rating,
+                          data = combined,
+                          na.action = `na.exclude`)
 
 summary(regressionOnReviews)
 
 
-regressionOnInstalls <- lm(log(1+`Install Floor`) ~ Category,Rating,data = combined ,na.action = `na.exclude` )
+regressionOnInstalls <- lm(log(1+`Install Floor`) ~ Category,
+                           Rating,
+                           data = combined,
+                           na.action = `na.exclude`)
 
 summary(regressionOnInstalls)
 
@@ -269,16 +557,84 @@ summary(regressionOnInstalls)
 ## Sentiment Data
 ## Since we only have sentiment data for a:H we only consider APPS from A -> H )
 
-combined_ah <- combined %>% filter(grepl("^[A-H]", App))
+combined_ah <- combined %>% 
+  filter(grepl("^[A-H]", App))
 
-regressionOnRatingAgainstSentiment <- lm(Rating ~ median_polarity + median_subjectivity ,data = combined_ah ,na.action = `na.exclude` )
+regressionOnRatingAgainstSentiment <- lm(
+  Rating ~ median_polarity + median_subjectivity,
+  data = combined_ah,
+  na.action = `na.exclude`)
 
 summary(regressionOnRatingAgainstSentiment)
 
 
-regressionOnInstallsAgainstSentiment <- lm(log(1+`Install Floor`) ~ median_polarity + median_subjectivity ,data = combined_ah ,na.action = `na.exclude` )
+regressionOnInstallsAgainstSentiment <- lm(
+  log(1+`Install Floor`) ~ median_polarity + median_subjectivity,
+  data = combined_ah,
+  na.action = `na.exclude`)
 
 summary(regressionOnInstallsAgainstSentiment)
 
 
+combined$Last.Updated <- as.numeric(
+  as.POSIXct(combined$Last.Updated, 
+             format="%Y-%m-%d")
+  )
+lMean <- mean(combined$Last.Updated)
+stDev <- sd(combined$Last.Updated)
+combined$Last.Updated <- (combined$Last.Updated - lMean) / stDev
+
+regressionOnRatingAgainstLastUpdated <- lm(Rating ~ Last.Updated,
+                                           data = combined,
+                                           na.action = `na.exclude`)
+
+summary(regressionOnRatingAgainstLastUpdated)
+
+x = data.frame(log(as.numeric(as.POSIXct("2017-05-23", format="%Y-%m-%d"))))
+colnames(x) <- c("Last.Updated")
+x$Last.Updated <- (x$Last.Updated - lMean)/stDev
+
+std_r <- predict.lm(regressionOnRatingAgainstLastUpdated,x)
+```
+
+#### Random Forest
+
+```{r}
+cm <- combined %>% 
+  select(Rating, Reviews, `Install Floor`, Size, `Is Free`)
+
+names(cm) <- make.names(names(cm))
+trainIndex <- sample(nrow(cm), nrow(cm)*.7)
+trainSet <- cm[trainIndex,]
+validationSet <- cm[-trainIndex,]
+str(trainSet)
+
+regressor <- randomForest(formula=Rating ~ .,
+                          data=trainSet,
+                          na.action = `na.exclude`)
+str(regressor)
+print("Observed Error mse is quite high")
+regressor$rsq
+
+predicted_values <- as.vector(predict(regressor,newdata=validationSet %>% 
+                                        select(-Rating)))
+plot(validationSet$Reviews,
+     predicted_values,
+     xlab="",
+     ylab="",
+     ylim = c(0, 5),
+     col="blue")
+par(new=TRUE)
+plot(validationSet$Reviews,
+     validationSet$Rating,
+     xlab="Reviews",
+     ylab="Ratings",
+     ylim = c(0,5),
+     main = "Ratings vs. Reviews with Predictor",
+     col="green")
+legend(20000000, 3.4, legend = c("Predictions", "Actual"), 
+       col = c("blue", "green"),
+       lty = 1:2, cex = .8)
+
+## For lower value of Reviews vs Rating the model performs badly due to missing data 
 ```
